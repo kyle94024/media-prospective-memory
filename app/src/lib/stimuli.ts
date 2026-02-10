@@ -114,9 +114,10 @@ export function generateTrials(
   const words = shuffle(phase === "before" ? [...WORDS_BLOCK_A] : [...WORDS_BLOCK_B]);
   const nonwords = shuffle(phase === "before" ? [...NONWORDS_BLOCK_A] : [...NONWORDS_BLOCK_B]);
 
-  // Create LD trials (80 words + 80 nonwords = 160)
+  // Create LD trials (25 words + 25 nonwords = 50)
+  const halfLD = TIMING.LD_TRIALS_PER_BLOCK / 2;
   const ldTrials: Trial[] = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < halfLD; i++) {
     ldTrials.push({ index: 0, stimulus: words[i], type: "word" });
     ldTrials.push({ index: 0, stimulus: nonwords[i], type: "nonword" });
   }

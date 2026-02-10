@@ -16,7 +16,6 @@ export default function ResultsDisplay({
 }: ResultsDisplayProps) {
   const router = useRouter();
 
-  // Calculate stats
   const ldTrials = results.filter(
     (r) => r.stimulusType === "word" || r.stimulusType === "nonword"
   );
@@ -28,8 +27,7 @@ export default function ResultsDisplay({
   const ldSuccessful = ldTrials.filter((r) => r.success && r.reactionTime !== null);
   const ldAvgRT =
     ldSuccessful.length > 0
-      ? ldSuccessful.reduce((sum, r) => sum + (r.reactionTime || 0), 0) /
-        ldSuccessful.length
+      ? ldSuccessful.reduce((sum, r) => sum + (r.reactionTime || 0), 0) / ldSuccessful.length
       : 0;
 
   const pmCorrect = pmTrials.filter((r) => r.correct).length;
@@ -38,8 +36,7 @@ export default function ResultsDisplay({
   const pmSuccessful = pmTrials.filter((r) => r.success && r.reactionTime !== null);
   const pmAvgRT =
     pmSuccessful.length > 0
-      ? pmSuccessful.reduce((sum, r) => sum + (r.reactionTime || 0), 0) /
-        pmSuccessful.length
+      ? pmSuccessful.reduce((sum, r) => sum + (r.reactionTime || 0), 0) / pmSuccessful.length
       : 0;
 
   const totalCorrect = results.filter((r) => r.correct).length;
@@ -47,135 +44,116 @@ export default function ResultsDisplay({
 
   const wordTrials = results.filter((r) => r.stimulusType === "word");
   const wordAccuracy = wordTrials.length > 0
-    ? (wordTrials.filter(r => r.correct).length / wordTrials.length) * 100
+    ? (wordTrials.filter((r) => r.correct).length / wordTrials.length) * 100
     : 0;
 
   const nonwordTrials = results.filter((r) => r.stimulusType === "nonword");
   const nonwordAccuracy = nonwordTrials.length > 0
-    ? (nonwordTrials.filter(r => r.correct).length / nonwordTrials.length) * 100
+    ? (nonwordTrials.filter((r) => r.correct).length / nonwordTrials.length) * 100
     : 0;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-neutral-950 px-4 py-12">
+    <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 px-4 py-14 transition-colors duration-200">
       <div className="max-w-2xl w-full space-y-8">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 text-emerald-400 text-sm uppercase tracking-widest mb-2">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 text-emerald-500 text-sm uppercase tracking-widest mb-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             Task Complete
           </div>
-          <h1 className="text-3xl font-light text-white">Results</h1>
-          <p className="text-neutral-500">
+          <h1 className="text-3xl font-light text-neutral-900 dark:text-white">Results</h1>
+          <p className="text-neutral-500 text-base">
             {taskType === "PM" ? "Prospective Memory" : "Lexical Decision"} Task
             &mdash; {phase === "before" ? "Pre" : "Post"}-Interruption
           </p>
         </div>
 
         {/* Overall accuracy card */}
-        <div className="bg-gradient-to-br from-neutral-900 to-neutral-900/50 border border-neutral-800 rounded-2xl p-8 text-center">
-          <div className="text-6xl font-light text-white mb-2">
+        <div className="bg-gradient-to-br from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-10 text-center">
+          <div className="text-6xl font-light text-neutral-900 dark:text-white mb-3">
             {totalAccuracy.toFixed(1)}%
           </div>
-          <div className="text-neutral-500">Overall Accuracy</div>
-          <div className="text-neutral-600 text-sm mt-1">
+          <div className="text-neutral-500 text-base">Overall Accuracy</div>
+          <div className="text-neutral-400 dark:text-neutral-600 text-sm mt-1.5">
             {totalCorrect} / {results.length} correct
           </div>
         </div>
 
         {/* Detailed stats */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* LD Stats */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">
+        <div className="grid grid-cols-2 gap-5">
+          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-7 space-y-5">
+            <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               Lexical Decision
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <div className="text-2xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {ldAccuracy.toFixed(1)}%
                 </div>
-                <div className="text-xs text-neutral-600">
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">
                   Accuracy ({ldCorrect}/{ldTrials.length})
                 </div>
               </div>
               <div>
-                <div className="text-2xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {ldAvgRT.toFixed(0)}
-                  <span className="text-sm text-neutral-600 ml-1">ms</span>
+                  <span className="text-sm text-neutral-400 dark:text-neutral-600 ml-1">ms</span>
                 </div>
-                <div className="text-xs text-neutral-600">Avg. Reaction Time</div>
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Avg. Reaction Time</div>
               </div>
             </div>
           </div>
 
-          {/* Word vs Nonword breakdown */}
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">
+          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-7 space-y-5">
+            <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
               Breakdown
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <div className="text-2xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {wordAccuracy.toFixed(1)}%
                 </div>
-                <div className="text-xs text-neutral-600">
-                  Word Accuracy
-                </div>
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Word Accuracy</div>
               </div>
               <div>
-                <div className="text-2xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {nonwordAccuracy.toFixed(1)}%
                 </div>
-                <div className="text-xs text-neutral-600">Non-word Accuracy</div>
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Non-word Accuracy</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* PM Stats (if PM task) */}
+        {/* PM Stats */}
         {taskType === "PM" && pmTrials.length > 0 && (
-          <div className="bg-neutral-900/50 border border-violet-900/30 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-medium text-violet-400 uppercase tracking-wider">
+          <div className="bg-white dark:bg-neutral-900/50 border border-violet-200 dark:border-violet-900/30 rounded-2xl p-7 space-y-5">
+            <h3 className="text-sm font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
               Prospective Memory
             </h3>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <div className="text-3xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {pmAccuracy.toFixed(1)}%
                 </div>
-                <div className="text-xs text-neutral-600">
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">
                   PM Accuracy ({pmCorrect}/{pmTrials.length})
                 </div>
               </div>
               <div>
-                <div className="text-3xl font-light text-white">
+                <div className="text-3xl font-light text-neutral-900 dark:text-white">
                   {pmAvgRT.toFixed(0)}
-                  <span className="text-sm text-neutral-600 ml-1">ms</span>
+                  <span className="text-sm text-neutral-400 dark:text-neutral-600 ml-1">ms</span>
                 </div>
-                <div className="text-xs text-neutral-600">
-                  Avg. PM Reaction Time
-                </div>
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Avg. PM Reaction Time</div>
               </div>
             </div>
 
-            {/* PM Cue breakdown */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-3 gap-4 mt-5">
               {["BLUE", "PURPLE", "GREEN"].map((cue) => {
-                const cueTrials = pmTrials.filter(
-                  (r) => r.stimulus === cue
-                );
+                const cueTrials = pmTrials.filter((r) => r.stimulus === cue);
                 const cueCorrect = cueTrials.filter((r) => r.correct).length;
                 const colors: Record<string, string> = {
                   BLUE: "#3B82F6",
@@ -185,18 +163,13 @@ export default function ResultsDisplay({
                 return (
                   <div
                     key={cue}
-                    className="bg-neutral-800/50 rounded-xl p-3 text-center"
+                    className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-4 text-center"
                   >
-                    <div
-                      className="text-sm font-medium mb-1"
-                      style={{ color: colors[cue] }}
-                    >
+                    <div className="text-sm font-semibold mb-1.5" style={{ color: colors[cue] }}>
                       {cue}
                     </div>
-                    <div className="text-lg text-white">
-                      {cueTrials.length > 0
-                        ? `${cueCorrect}/${cueTrials.length}`
-                        : "N/A"}
+                    <div className="text-xl font-medium text-neutral-800 dark:text-white">
+                      {cueTrials.length > 0 ? `${cueCorrect}/${cueTrials.length}` : "N/A"}
                     </div>
                   </div>
                 );
@@ -206,10 +179,10 @@ export default function ResultsDisplay({
         )}
 
         {/* Timeout stats */}
-        <div className="bg-neutral-900/30 border border-neutral-800/50 rounded-2xl p-6">
+        <div className="bg-white/60 dark:bg-neutral-900/30 border border-neutral-200/60 dark:border-neutral-800/50 rounded-2xl p-6">
           <div className="flex justify-between items-center">
             <span className="text-neutral-500 text-sm">Timeouts (no response)</span>
-            <span className="text-neutral-400">
+            <span className="text-neutral-600 dark:text-neutral-400 font-medium">
               {results.filter((r) => !r.success).length} / {results.length}
             </span>
           </div>
@@ -219,8 +192,8 @@ export default function ResultsDisplay({
         <div className="flex justify-center gap-4 pt-4">
           <button
             onClick={() => router.push("/")}
-            className="px-8 py-3 bg-neutral-800 text-white rounded-full font-medium
-                       hover:bg-neutral-700 transition-colors duration-200 border border-neutral-700"
+            className="px-8 py-3.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white rounded-full font-semibold
+                       hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200 border border-neutral-200 dark:border-neutral-700"
           >
             Back to Home
           </button>
