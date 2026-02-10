@@ -39,7 +39,6 @@ export default function TaskRunner({
   const [stage, setStage] = useState<TaskStage>("ready");
   const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(null);
 
-  // Use refs for values needed inside timers/handlers to avoid stale closures
   const trialsRef = useRef(trials);
   const trialIndexRef = useRef(0);
   const resultsRef = useRef<TrialResult[]>([]);
@@ -64,7 +63,6 @@ export default function TaskRunner({
     return trial.type === "word" ? "n" : "m";
   };
 
-  // Core function to show a specific trial
   const showTrial = useCallback((idx: number) => {
     const t = trialsRef.current;
     if (idx >= t.length) {
@@ -86,7 +84,6 @@ export default function TaskRunner({
       setStage("stimulus");
       stimulusStartRef.current = performance.now();
 
-      // Timeout handler
       timerRef.current = setTimeout(() => {
         if (respondedRef.current) return;
         respondedRef.current = true;
@@ -123,7 +120,6 @@ export default function TaskRunner({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, taskType, isTraining]);
 
-  // Handle keypress
   useEffect(() => {
     if (stage !== "stimulus") return;
 
@@ -182,7 +178,6 @@ export default function TaskRunner({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, sessionId, taskType, isTraining, showTrial]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => clearTimer();
   }, []);
@@ -193,25 +188,25 @@ export default function TaskRunner({
   // Ready screen
   if (stage === "ready") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
-        <div className="text-center space-y-6">
-          <div className="text-neutral-400 text-sm uppercase tracking-widest">
+      <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+        <div className="text-center space-y-8">
+          <div className="text-neutral-400 dark:text-neutral-400 text-sm uppercase tracking-widest">
             {isTraining ? "Training" : phase === "before" ? "Pre-Interruption" : "Post-Interruption"}
           </div>
-          <h2 className="text-2xl font-light text-white">
+          <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
             {isTraining
               ? "Practice Round"
               : `${taskType === "PM" ? "Prospective Memory" : "Lexical Decision"} Task`}
           </h2>
-          <p className="text-neutral-500 max-w-md">
+          <p className="text-neutral-500 max-w-md text-base">
             {isTraining
               ? `${trials.length} practice trials with feedback`
               : `${trials.length} trials`}
           </p>
           <button
             onClick={() => showTrial(0)}
-            className="px-8 py-3 bg-white text-neutral-950 rounded-full font-medium
-                       hover:bg-neutral-200 transition-colors duration-200 mt-4"
+            className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                       hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200 mt-4 text-base"
           >
             Begin
           </button>
@@ -220,22 +215,22 @@ export default function TaskRunner({
     );
   }
 
-  // Done screen (brief flash before results)
+  // Done screen
   if (stage === "done") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-950">
-        <div className="text-center space-y-4">
-          <div className="animate-spin w-8 h-8 border-2 border-neutral-600 border-t-white rounded-full mx-auto" />
-          <div className="text-neutral-400">Processing results...</div>
+      <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+        <div className="text-center space-y-5">
+          <div className="animate-spin w-8 h-8 border-2 border-neutral-200 dark:border-neutral-600 border-t-neutral-600 dark:border-t-white rounded-full mx-auto" />
+          <div className="text-neutral-500 dark:text-neutral-400">Processing results...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 select-none">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 select-none transition-colors duration-200">
       {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-neutral-900">
+      <div className="fixed top-0 left-0 right-0 h-1.5 bg-neutral-200 dark:bg-neutral-900">
         <div
           className="h-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300"
           style={{ width: `${progress}%` }}
@@ -243,18 +238,18 @@ export default function TaskRunner({
       </div>
 
       {/* Trial counter */}
-      <div className="fixed top-4 right-6 text-neutral-600 text-sm font-mono">
+      <div className="fixed top-5 right-7 text-neutral-400 dark:text-neutral-600 text-sm font-mono">
         {trialIndex + 1} / {trials.length}
       </div>
 
       {/* Main display area */}
-      <div className="flex items-center justify-center w-full h-64">
+      <div className="flex items-center justify-center w-full h-72">
         {stage === "fixation" && (
-          <div className="text-6xl text-white font-extralight select-none">+</div>
+          <div className="text-7xl text-neutral-300 dark:text-neutral-600 font-extralight select-none">+</div>
         )}
 
         {stage === "stimulus" && currentTrial && (
-          <div className="text-5xl md:text-6xl font-bold tracking-wider text-white">
+          <div className="text-5xl md:text-7xl font-bold tracking-wider text-neutral-900 dark:text-white">
             {currentTrial.stimulus}
           </div>
         )}
@@ -263,8 +258,8 @@ export default function TaskRunner({
 
         {stage === "feedback" && feedback && (
           <div
-            className={`text-2xl font-medium ${
-              feedback.correct ? "text-emerald-400" : "text-rose-400"
+            className={`text-2xl font-semibold ${
+              feedback.correct ? "text-emerald-500" : "text-rose-500"
             }`}
           >
             {feedback.message}
@@ -273,28 +268,28 @@ export default function TaskRunner({
       </div>
 
       {/* Key reminders */}
-      <div className="fixed bottom-8 left-0 right-0">
-        <div className="flex justify-center gap-8 text-neutral-600 text-sm">
-          <div className="flex items-center gap-2">
-            <kbd className="px-2.5 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
+      <div className="fixed bottom-10 left-0 right-0">
+        <div className="flex justify-center gap-10 text-neutral-400 dark:text-neutral-600 text-sm">
+          <div className="flex items-center gap-2.5">
+            <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
               N
             </kbd>
             <span>Word</span>
           </div>
-          <div className="flex items-center gap-2">
-            <kbd className="px-2.5 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
+          <div className="flex items-center gap-2.5">
+            <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
               M
             </kbd>
             <span>Non-word</span>
           </div>
           {taskType === "PM" && (
             <>
-              <div className="w-px h-6 bg-neutral-800" />
+              <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
               {PM_CUES.map((cue) => (
-                <div key={cue.key} className="flex items-center gap-2">
+                <div key={cue.key} className="flex items-center gap-2.5">
                   <kbd
-                    className="px-2.5 py-1 bg-neutral-800 rounded font-mono text-xs border border-neutral-700"
-                    style={{ color: cue.color }}
+                    className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md font-mono text-xs border shadow-sm"
+                    style={{ color: cue.color, borderColor: `${cue.color}40` }}
                   >
                     {cue.key.toUpperCase()}
                   </kbd>
