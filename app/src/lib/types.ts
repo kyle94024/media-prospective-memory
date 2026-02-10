@@ -1,0 +1,62 @@
+export type TaskType = "LD" | "PM";
+export type Phase = "before" | "after";
+export type StimulusType = "word" | "nonword" | "pm_cue";
+
+export interface PMCue {
+  word: string;
+  key: string;
+  color: string;
+}
+
+export const PM_CUES: PMCue[] = [
+  { word: "BLUE", key: "q", color: "#3B82F6" },
+  { word: "PURPLE", key: "w", color: "#8B5CF6" },
+  { word: "GREEN", key: "e", color: "#22C55E" },
+];
+
+export interface Trial {
+  index: number;
+  stimulus: string;
+  type: StimulusType;
+  pmCueKey?: string; // which PM key should be pressed (q/w/e)
+}
+
+export interface TrialResult {
+  sessionId: string;
+  trialIndex: number;
+  stimulus: string;
+  stimulusType: StimulusType;
+  expectedKey: string;
+  pressedKey: string | null;
+  correct: boolean;
+  reactionTime: number | null; // ms
+  success: boolean; // responded within time window
+  fixationDuration: number;
+  timestamp: number;
+}
+
+export interface SessionConfig {
+  taskType: TaskType;
+  phase: Phase;
+  participantId: string;
+}
+
+export interface SessionData {
+  id: string;
+  config: SessionConfig;
+  trials: TrialResult[];
+  startedAt: number;
+  completedAt?: number;
+}
+
+// Timing constants (in ms) from the original study
+export const TIMING = {
+  FIXATION_DURATIONS: [1250, 1500, 1750],
+  STIMULUS_MAX_DURATION: 3000,
+  ISI: 1000, // inter-stimulus interval
+  TRAINING_TRIALS: 10,
+  LD_TRIALS_PER_BLOCK: 160,
+  PM_TRIALS_PER_BLOCK: 16,
+  MIN_LD_BEFORE_FIRST_PM: 10,
+  MIN_LD_BETWEEN_PM: 8,
+};
