@@ -49,11 +49,11 @@ export interface SessionData {
   completedAt?: number;
 }
 
-// Timing constants (in ms) from the original study
+// Timing constants (in ms) — shortened for feasibility
 export const TIMING = {
-  FIXATION_DURATIONS: [1250, 1500, 1750],
-  STIMULUS_MAX_DURATION: 3000,
-  ISI: 1000, // inter-stimulus interval
+  FIXATION_DURATIONS: [500, 750, 1000],
+  STIMULUS_MAX_DURATION: 2000,
+  ISI: 500, // inter-stimulus interval
   TRAINING_TRIALS: 10,
   LD_TRIALS_PER_BLOCK: 50,
   PM_TRIALS_PER_BLOCK: 7,
