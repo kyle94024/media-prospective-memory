@@ -5,10 +5,18 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 const BREAK_SECONDS = 5 * 60;
 
-// Step 0: Welcome, Step 1: PM before, Step 2: Break, Step 3: PM after, Step 4+: Complete
-const TASK_STEPS: Record<number, { task: string; phase: string; label: string; part: string }> = {
-  1: { task: "PM", phase: "before", label: "Task", part: "Part A" },
-  3: { task: "PM", phase: "after", label: "Task", part: "Part B" },
+// Step 0: Welcome
+// Step 1: Practice LD only (trainingOnly)
+// Step 2: Practice PM (trainingOnly)
+// Step 3: Actual PM Part A (skipTraining)
+// Step 4: Break
+// Step 5: Actual PM Part B (skipTraining)
+// Step 6+: Complete
+const TASK_STEPS: Record<number, { task: string; phase: string; label: string; part: string; extra: string }> = {
+  1: { task: "LD", phase: "before", label: "Practice", part: "Word Classification", extra: "&trainingOnly=true" },
+  2: { task: "PM", phase: "before", label: "Practice", part: "Full Task", extra: "&trainingOnly=true" },
+  3: { task: "PM", phase: "before", label: "Task", part: "Part A", extra: "&skipTraining=true" },
+  5: { task: "PM", phase: "after", label: "Task", part: "Part B", extra: "&skipTraining=true" },
 };
 
 function ExperimentContent() {
@@ -24,7 +32,7 @@ function ExperimentContent() {
 
   // Break countdown timer
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 4) return;
     if (timeLeft <= 0) {
       setBreakDone(true);
       return;
@@ -33,13 +41,13 @@ function ExperimentContent() {
     return () => clearInterval(interval);
   }, [step, timeLeft]);
 
-  // Auto-navigate for task steps (1, 3)
+  // Auto-navigate for task steps (1, 2, 3, 5)
   useEffect(() => {
     const config = TASK_STEPS[step];
     if (config) {
       const encodedPid = encodeURIComponent(pid || "anonymous");
       router.replace(
-        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}`
+        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}${config.extra}`
       );
     }
   }, [step, pid, router]);
@@ -64,8 +72,8 @@ function ExperimentContent() {
               Cognitive Task
             </h1>
             <p className="text-neutral-400 dark:text-neutral-500 max-w-md mx-auto text-base leading-relaxed mt-5">
-              Thank you for participating. This study consists of a short task
-              completed in two sessions with a break in between.
+              Thank you for participating. You&apos;ll start with two short practice
+              rounds, then complete the main task in two sessions with a break in between.
             </p>
           </div>
 
@@ -99,9 +107,11 @@ function ExperimentContent() {
 
               <div className="space-y-5">
                 {[
-                  { num: "1", label: "Task — Part A", isBreak: false },
+                  { num: "", label: "Practice — Word Classification", isPractice: true },
+                  { num: "", label: "Practice — Full Task (with special cues)", isPractice: true },
+                  { num: "1", label: "Task — Part A" },
                   { num: "", label: "5 minute break", isBreak: true },
-                  { num: "2", label: "Task — Part B", isBreak: false },
+                  { num: "2", label: "Task — Part B" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-5">
                     {item.isBreak ? (
@@ -110,12 +120,22 @@ function ExperimentContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
+                    ) : item.isPractice ? (
+                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-400 dark:text-neutral-600">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+                        </svg>
+                      </div>
                     ) : (
                       <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold border-violet-300 dark:border-violet-800 text-violet-500">
                         {item.num}
                       </div>
                     )}
-                    <span className={`text-sm font-medium ${item.isBreak ? "text-neutral-400 dark:text-neutral-600 italic" : "text-neutral-600 dark:text-neutral-400"}`}>
+                    <span className={`text-sm font-medium ${
+                      item.isBreak || item.isPractice
+                        ? "text-neutral-400 dark:text-neutral-600 italic"
+                        : "text-neutral-600 dark:text-neutral-400"
+                    }`}>
                       {item.label}
                     </span>
                   </div>
@@ -147,8 +167,8 @@ function ExperimentContent() {
     );
   }
 
-  // Step 2: Break timer
-  if (step === 2) {
+  // Step 4: Break timer
+  if (step === 4) {
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
     const progress = ((BREAK_SECONDS - timeLeft) / BREAK_SECONDS) * 100;
@@ -204,7 +224,7 @@ function ExperimentContent() {
 
             <div className="pt-4">
               <button
-                onClick={() => router.push(`/experiment?step=3&pid=${encodeURIComponent(pid)}`)}
+                onClick={() => router.push(`/experiment?step=5&pid=${encodeURIComponent(pid)}`)}
                 disabled={!breakDone}
                 className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300
                   ${breakDone
@@ -221,8 +241,8 @@ function ExperimentContent() {
     );
   }
 
-  // Step 4+: Complete
-  if (step >= 4) {
+  // Step 6+: Complete
+  if (step >= 6) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />

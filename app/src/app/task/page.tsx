@@ -23,8 +23,12 @@ function TaskContent() {
   const participantId = searchParams.get("pid") || "anonymous";
   const isExperiment = searchParams.get("mode") === "experiment";
   const experimentStep = parseInt(searchParams.get("step") || "0");
+  const trainingOnly = searchParams.get("trainingOnly") === "true";
+  const skipTraining = searchParams.get("skipTraining") === "true";
 
-  const [currentPhase, setCurrentPhase] = useState<TaskPhase>("instructions");
+  const [currentPhase, setCurrentPhase] = useState<TaskPhase>(
+    skipTraining ? "main_task" : "instructions"
+  );
   const [sessionId] = useState(
     () => `${taskType}-${phase}-${participantId}-${Date.now()}`
   );
@@ -94,7 +98,7 @@ function TaskContent() {
   }
 
   const taskLabel = isExperiment
-    ? (taskType === "PM" ? "Task 2" : "Task 1")
+    ? "Task"
     : (taskType === "PM" ? "Prospective Memory" : "Lexical Decision");
 
   const homePath = isExperiment ? "/experiment" : "/";
@@ -132,15 +136,21 @@ function TaskContent() {
               Practice Complete
             </div>
             <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
-              Ready for the main task?
+              {trainingOnly ? "Nice work!" : "Ready for the main task?"}
             </h2>
             <p className="text-neutral-500 leading-relaxed text-base">
-              The main task is the same as practice, but without feedback.
-              Remember to respond as quickly and accurately as possible.
-              {taskType === "PM" && (
-                <span className="block mt-3 text-violet-600 dark:text-violet-400 font-medium">
-                  Don&apos;t forget to press the special keys when color words appear!
-                </span>
+              {trainingOnly ? (
+                "You\u2019ve completed this practice round. Let\u2019s continue to the next step."
+              ) : (
+                <>
+                  The main task is the same as practice, but without feedback.
+                  Remember to respond as quickly and accurately as possible.
+                  {taskType === "PM" && (
+                    <span className="block mt-3 text-violet-600 dark:text-violet-400 font-medium">
+                      Don&apos;t forget to press the special keys when color words appear!
+                    </span>
+                  )}
+                </>
               )}
             </p>
             <div className="flex gap-4 justify-center pt-2">
@@ -151,13 +161,23 @@ function TaskContent() {
               >
                 Practice Again
               </button>
-              <button
-                onClick={() => setCurrentPhase("main_task")}
-                className="px-9 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
-                           hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
-              >
-                Start {isExperiment ? taskLabel : "Main Task"}
-              </button>
+              {trainingOnly && nextExperimentUrl ? (
+                <button
+                  onClick={() => router.push(nextExperimentUrl)}
+                  className="px-9 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  onClick={() => setCurrentPhase("main_task")}
+                  className="px-9 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                >
+                  Start {isExperiment ? taskLabel : "Main Task"}
+                </button>
+              )}
             </div>
           </div>
         </div>
