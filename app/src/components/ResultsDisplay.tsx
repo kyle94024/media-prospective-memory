@@ -52,6 +52,9 @@ export default function ResultsDisplay({
     ? (nonwordTrials.filter((r) => r.correct).length / nonwordTrials.length) * 100
     : 0;
 
+  const taskLabel = taskType === "PM" ? "Task 2" : "Task 1";
+  const partLabel = phase === "before" ? "Part A" : "Part B";
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 px-4 py-14 transition-colors duration-200">
       <div className="max-w-2xl w-full space-y-8">
@@ -61,12 +64,11 @@ export default function ResultsDisplay({
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Task Complete
+            Complete
           </div>
           <h1 className="text-3xl font-light text-neutral-900 dark:text-white">Results</h1>
           <p className="text-neutral-500 text-base">
-            {taskType === "PM" ? "Prospective Memory" : "Lexical Decision"} Task
-            &mdash; {phase === "before" ? "Pre" : "Post"}-Interruption
+            {taskLabel} &mdash; {partLabel}
           </p>
         </div>
 
@@ -85,7 +87,7 @@ export default function ResultsDisplay({
         <div className="grid grid-cols-2 gap-5">
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-7 space-y-5">
             <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-              Lexical Decision
+              Classification
             </h3>
             <div className="space-y-4">
               <div>
@@ -127,11 +129,11 @@ export default function ResultsDisplay({
           </div>
         </div>
 
-        {/* PM Stats */}
+        {/* Special cue stats */}
         {taskType === "PM" && pmTrials.length > 0 && (
           <div className="bg-white dark:bg-neutral-900/50 border border-violet-200 dark:border-violet-900/30 rounded-2xl p-7 space-y-5">
             <h3 className="text-sm font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
-              Prospective Memory
+              Special Cues
             </h3>
             <div className="grid grid-cols-2 gap-6">
               <div>
@@ -139,7 +141,7 @@ export default function ResultsDisplay({
                   {pmAccuracy.toFixed(1)}%
                 </div>
                 <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">
-                  PM Accuracy ({pmCorrect}/{pmTrials.length})
+                  Cue Accuracy ({pmCorrect}/{pmTrials.length})
                 </div>
               </div>
               <div>
@@ -147,7 +149,7 @@ export default function ResultsDisplay({
                   {pmAvgRT.toFixed(0)}
                   <span className="text-sm text-neutral-400 dark:text-neutral-600 ml-1">ms</span>
                 </div>
-                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Avg. PM Reaction Time</div>
+                <div className="text-sm text-neutral-400 dark:text-neutral-600 mt-1">Avg. Cue Reaction Time</div>
               </div>
             </div>
 

@@ -185,18 +185,19 @@ export default function TaskRunner({
   const currentTrial = trials[trialIndex];
   const progress = trials.length > 0 ? ((trialIndex + 1) / trials.length) * 100 : 0;
 
+  const taskLabel = taskType === "PM" ? "Task 2" : "Task 1";
+  const partLabel = phase === "before" ? "Part A" : "Part B";
+
   // Ready screen
   if (stage === "ready") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
         <div className="text-center space-y-8">
           <div className="text-neutral-400 dark:text-neutral-400 text-sm uppercase tracking-widest">
-            {isTraining ? "Training" : phase === "before" ? "Pre-Interruption" : "Post-Interruption"}
+            {isTraining ? "Training" : partLabel}
           </div>
           <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
-            {isTraining
-              ? "Practice Round"
-              : `${taskType === "PM" ? "Prospective Memory" : "Lexical Decision"} Task`}
+            {isTraining ? "Practice Round" : taskLabel}
           </h2>
           <p className="text-neutral-500 max-w-md text-base">
             {isTraining

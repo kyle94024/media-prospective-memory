@@ -91,6 +91,8 @@ function TaskContent() {
     return null;
   }
 
+  const taskLabel = taskType === "PM" ? "Task 2" : "Task 1";
+
   switch (currentPhase) {
     case "instructions":
       return (
@@ -143,7 +145,7 @@ function TaskContent() {
                 className="px-9 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
                            hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
               >
-                Start Main Task
+                Start {taskLabel}
               </button>
             </div>
           </div>
