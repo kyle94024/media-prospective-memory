@@ -124,9 +124,9 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
                 <div className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
                   Left Hand
                 </div>
-                <div className="relative flex gap-1.5">
-                  {/* Fingers above keys */}
-                  <div className="absolute -top-9 left-0 right-0 flex gap-1.5">
+                <div className="flex flex-col items-center gap-1">
+                  {/* Finger labels */}
+                  <div className="flex gap-1.5 w-full">
                     {[
                       { finger: "Ring", color: PM_CUES[2].color },
                       { finger: "Mid", color: PM_CUES[1].color },
@@ -139,19 +139,21 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
                     ))}
                   </div>
                   {/* Q W E keys */}
-                  {PM_CUES.slice().reverse().map((cue) => (
-                    <div
-                      key={cue.key}
-                      className="w-12 h-12 rounded-lg border-2 flex items-center justify-center font-mono text-base font-bold shadow-sm"
-                      style={{
-                        color: cue.color,
-                        borderColor: `${cue.color}50`,
-                        backgroundColor: `${cue.color}10`,
-                      }}
-                    >
-                      {cue.key.toUpperCase()}
-                    </div>
-                  ))}
+                  <div className="flex gap-1.5">
+                    {PM_CUES.slice().reverse().map((cue) => (
+                      <div
+                        key={cue.key}
+                        className="w-12 h-12 rounded-lg border-2 flex items-center justify-center font-mono text-base font-bold shadow-sm"
+                        style={{
+                          color: cue.color,
+                          borderColor: `${cue.color}50`,
+                          backgroundColor: `${cue.color}10`,
+                        }}
+                      >
+                        {cue.key.toUpperCase()}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="text-[11px] text-neutral-400 dark:text-neutral-600 text-center mt-1">
                   Color-word cues
@@ -173,9 +175,9 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
               <div className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
                 Right Hand
               </div>
-              <div className="relative flex gap-1.5">
-                {/* Fingers above keys */}
-                <div className="absolute -top-9 left-0 right-0 flex gap-1.5">
+              <div className="flex flex-col items-center gap-1">
+                {/* Finger labels */}
+                <div className="flex gap-1.5 w-full">
                   {[
                     { finger: "Index", label: "N" },
                     { finger: "Mid", label: "M" },
@@ -187,11 +189,13 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
                   ))}
                 </div>
                 {/* N M keys */}
-                <div className="w-12 h-12 rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-mono text-base font-bold text-blue-600 dark:text-blue-400 shadow-sm">
-                  N
-                </div>
-                <div className="w-12 h-12 rounded-lg border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center font-mono text-base font-bold text-amber-600 dark:text-amber-400 shadow-sm">
-                  M
+                <div className="flex gap-1.5">
+                  <div className="w-12 h-12 rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-mono text-base font-bold text-blue-600 dark:text-blue-400 shadow-sm">
+                    N
+                  </div>
+                  <div className="w-12 h-12 rounded-lg border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center font-mono text-base font-bold text-amber-600 dark:text-amber-400 shadow-sm">
+                    M
+                  </div>
                 </div>
               </div>
               <div className="flex gap-1.5 text-[11px] mt-1">

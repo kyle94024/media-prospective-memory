@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-const BREAK_SECONDS = 5 * 60;
+const BREAK_SECONDS = 10 * 60;
 
 // Step 0: Welcome
 // Step 1: Practice LD only (trainingOnly)
@@ -110,7 +110,7 @@ function ExperimentContent() {
                   { num: "", label: "Practice — Word Classification", isPractice: true },
                   { num: "", label: "Practice — Full Task (with special cues)", isPractice: true },
                   { num: "1", label: "Task — Part A" },
-                  { num: "", label: "5 minute break", isBreak: true },
+                  { num: "", label: "10 minute break", isBreak: true },
                   { num: "2", label: "Task — Part B" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-5">
@@ -190,7 +190,7 @@ function ExperimentContent() {
 
             {!breakDone && (
               <p className="text-neutral-500 text-base leading-relaxed">
-                Please relax for 5 minutes. The timer will count down automatically.
+                Please relax for 10 minutes. The timer will count down automatically.
               </p>
             )}
 
