@@ -112,7 +112,7 @@ export default function TaskRunner({
           timerRef.current = setTimeout(() => {
             setStage("isi");
             timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
-          }, 1500);
+          }, 800);
         } else {
           setStage("isi");
           timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
@@ -168,7 +168,7 @@ export default function TaskRunner({
         timerRef.current = setTimeout(() => {
           setStage("isi");
           timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
-        }, 1200);
+        }, 800);
       } else {
         setStage("isi");
         timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
