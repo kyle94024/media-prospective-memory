@@ -1,251 +1,285 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { TaskType, Phase, PM_CUES } from "@/lib/types";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ExperimentPage() {
+const BREAK_SECONDS = 5 * 60;
+
+const TASK_STEPS = [
+  { task: "LD", phase: "before", label: "Task 1", part: "Part A" },
+  { task: "PM", phase: "before", label: "Task 2", part: "Part A" },
+  null, // break
+  { task: "LD", phase: "after", label: "Task 1", part: "Part B" },
+  { task: "PM", phase: "after", label: "Task 2", part: "Part B" },
+];
+
+function ExperimentContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [taskType, setTaskType] = useState<TaskType | null>(null);
-  const [phase, setPhase] = useState<Phase | null>(null);
-  const [participantId, setParticipantId] = useState("");
 
-  const canStart = taskType !== null && phase !== null;
+  const step = parseInt(searchParams.get("step") || "0");
+  const pid = searchParams.get("pid") || "";
 
-  const handleStart = () => {
-    if (!canStart) return;
-    const pid = participantId.trim() || "anonymous";
-    router.push(`/task?task=${taskType}&phase=${phase}&pid=${encodeURIComponent(pid)}&mode=experiment`);
-  };
+  const [participantId, setParticipantId] = useState(pid);
+  const [timeLeft, setTimeLeft] = useState(BREAK_SECONDS);
+  const [breakDone, setBreakDone] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
-      {/* Background gradient */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
+  // Break countdown timer
+  useEffect(() => {
+    if (step !== 3) return;
+    if (timeLeft <= 0) {
+      setBreakDone(true);
+      return;
+    }
+    const interval = setInterval(() => setTimeLeft((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [step, timeLeft]);
 
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-24">
-        {/* Header */}
-        <div className="text-center mb-20 space-y-6">
-          <div className="inline-flex items-center gap-3 text-neutral-400 dark:text-neutral-500 text-xs uppercase tracking-[0.25em] mb-4">
-            <div className="w-10 h-px bg-neutral-300 dark:bg-neutral-700" />
-            Research Study
-            <div className="w-10 h-px bg-neutral-300 dark:bg-neutral-700" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight text-neutral-900 dark:text-white">
-            Cognitive Task
-          </h1>
-          <p className="text-neutral-400 dark:text-neutral-500 max-w-sm mx-auto text-sm leading-relaxed mt-4">
-            Please select your assigned task and part below, then follow the on-screen instructions.
-          </p>
-        </div>
+  // Auto-navigate for task steps (1, 2, 4, 5)
+  useEffect(() => {
+    if (step >= 1 && step <= 5 && step !== 3) {
+      const config = TASK_STEPS[step - 1];
+      if (config) {
+        const encodedPid = encodeURIComponent(pid || "anonymous");
+        router.replace(
+          `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}`
+        );
+      }
+    }
+  }, [step, pid, router]);
 
-        {/* Main selection card */}
-        <div className="max-w-xl w-full space-y-14">
-          {/* Participant ID */}
-          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-10 shadow-sm shadow-neutral-900/[0.04] dark:shadow-none transition-shadow duration-300">
-            <label className="block text-[13px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-5">
-              Participant ID
-              <span className="text-neutral-400 dark:text-neutral-600 font-normal normal-case tracking-normal ml-2 text-sm lowercase">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={participantId}
-              onChange={(e) => setParticipantId(e.target.value)}
-              placeholder="Enter your ID..."
-              className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl px-5 py-4
-                         text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
-                         focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700 focus:bg-white dark:focus:bg-neutral-800/80
-                         transition-all duration-200 text-[15px]"
-            />
-          </div>
+  const encodedPid = encodeURIComponent(participantId.trim() || "anonymous");
 
-          {/* Task Type Selection */}
-          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-10 space-y-8 shadow-sm shadow-neutral-900/[0.04] dark:shadow-none transition-shadow duration-300">
-            <h2 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider flex items-center gap-3">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-              Select Task
-            </h2>
-            <div className="grid grid-cols-2 gap-6">
-              <button
-                onClick={() => setTaskType("LD")}
-                className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left cursor-pointer
-                  ${
-                    taskType === "LD"
-                      ? "border-blue-500 bg-blue-50/80 dark:bg-blue-500/10 shadow-md shadow-blue-500/10 dark:shadow-blue-500/5 scale-[1.01]"
-                      : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 hover:border-neutral-300 dark:hover:border-neutral-600 hover:shadow-md hover:shadow-neutral-900/[0.06] dark:hover:shadow-black/20 hover:bg-white dark:hover:bg-neutral-800/50 hover:-translate-y-0.5"
-                  }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase">01</span>
-                    {taskType === "LD" && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-neutral-800 dark:text-white">
-                    Task 1
-                  </h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
-                    Classify letter strings as quickly as possible
-                  </p>
-                </div>
-              </button>
+  // Step 0: Welcome
+  if (step === 0) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
 
-              <button
-                onClick={() => setTaskType("PM")}
-                className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left cursor-pointer
-                  ${
-                    taskType === "PM"
-                      ? "border-violet-500 bg-violet-50/80 dark:bg-violet-500/10 shadow-md shadow-violet-500/10 dark:shadow-violet-500/5 scale-[1.01]"
-                      : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 hover:border-neutral-300 dark:hover:border-neutral-600 hover:shadow-md hover:shadow-neutral-900/[0.06] dark:hover:shadow-black/20 hover:bg-white dark:hover:bg-neutral-800/50 hover:-translate-y-0.5"
-                  }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase">02</span>
-                    {taskType === "PM" && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-violet-500 ring-4 ring-violet-500/20" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-neutral-800 dark:text-white">
-                    Task 2
-                  </h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
-                    Classify letter strings with an additional rule
-                  </p>
-                  <div className="flex gap-2 mt-3">
-                    {PM_CUES.map((cue) => (
-                      <span
-                        key={cue.word}
-                        className="text-xs px-2.5 py-1 rounded-md font-medium"
-                        style={{
-                          color: cue.color,
-                          backgroundColor: `${cue.color}15`,
-                        }}
-                      >
-                        {cue.key.toUpperCase()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </button>
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-28">
+          {/* Header */}
+          <div className="text-center mb-24 space-y-7">
+            <div className="inline-flex items-center gap-3 text-neutral-400 dark:text-neutral-500 text-xs uppercase tracking-[0.25em] mb-4">
+              <div className="w-12 h-px bg-neutral-300 dark:bg-neutral-700" />
+              Research Study
+              <div className="w-12 h-px bg-neutral-300 dark:bg-neutral-700" />
             </div>
-          </div>
-
-          {/* Phase Selection */}
-          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-10 space-y-8 shadow-sm shadow-neutral-900/[0.04] dark:shadow-none transition-shadow duration-300">
-            <h2 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider flex items-center gap-3">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-              Select Part
-            </h2>
-            <div className="grid grid-cols-2 gap-6">
-              <button
-                onClick={() => setPhase("before")}
-                className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left cursor-pointer
-                  ${
-                    phase === "before"
-                      ? "border-amber-500 bg-amber-50/80 dark:bg-amber-500/10 shadow-md shadow-amber-500/10 dark:shadow-amber-500/5 scale-[1.01]"
-                      : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 hover:border-neutral-300 dark:hover:border-neutral-600 hover:shadow-md hover:shadow-neutral-900/[0.06] dark:hover:shadow-black/20 hover:bg-white dark:hover:bg-neutral-800/50 hover:-translate-y-0.5"
-                  }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500">A</span>
-                    {phase === "before" && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-amber-500/20" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-neutral-800 dark:text-white">Part A</h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
-                    First session
-                  </p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setPhase("after")}
-                className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left cursor-pointer
-                  ${
-                    phase === "after"
-                      ? "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/10 dark:shadow-emerald-500/5 scale-[1.01]"
-                      : "border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 hover:border-neutral-300 dark:hover:border-neutral-600 hover:shadow-md hover:shadow-neutral-900/[0.06] dark:hover:shadow-black/20 hover:bg-white dark:hover:bg-neutral-800/50 hover:-translate-y-0.5"
-                  }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500">B</span>
-                    {phase === "after" && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-neutral-800 dark:text-white">Part B</h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
-                    Second session
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Start Button */}
-          <div className="pt-4">
-            <button
-              onClick={handleStart}
-              disabled={!canStart}
-              className={`w-full py-5 rounded-2xl font-semibold text-lg transition-all duration-300 tracking-wide
-                ${
-                  canStart
-                    ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-100 shadow-xl shadow-neutral-900/15 dark:shadow-white/10 hover:shadow-2xl hover:shadow-neutral-900/20 dark:hover:shadow-white/15 hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
-                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
-                }`}
-            >
-              {canStart ? "Start" : "Select task and part to continue"}
-            </button>
-          </div>
-
-          {/* Study flow diagram */}
-          <div className="bg-white/80 dark:bg-neutral-900/40 border border-neutral-200/70 dark:border-neutral-800/60 rounded-2xl p-10 shadow-sm shadow-neutral-900/[0.03] dark:shadow-none">
-            <h3 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-8 flex items-center gap-3">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-              Session Flow
-            </h3>
-            <div className="flex items-center justify-between text-xs">
-              <div className={`flex flex-col items-center gap-3 transition-colors duration-200 ${phase === "before" ? "text-amber-500" : "text-neutral-400 dark:text-neutral-600"}`}>
-                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-200
-                  ${phase === "before" ? "border-amber-500 bg-amber-50 dark:bg-amber-500/10 shadow-md shadow-amber-500/15" : "border-neutral-300 dark:border-neutral-700"}`}>
-                  A
-                </div>
-                <span className="font-medium">Part A</span>
-              </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-300 dark:from-neutral-700 dark:via-neutral-800 dark:to-neutral-700 mx-5" />
-              <div className="flex flex-col items-center gap-3 text-neutral-400 dark:text-neutral-600">
-                <div className="w-12 h-12 rounded-full border-2 border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="font-medium">5 min break</span>
-              </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-300 dark:from-neutral-700 dark:via-neutral-800 dark:to-neutral-700 mx-5" />
-              <div className={`flex flex-col items-center gap-3 transition-colors duration-200 ${phase === "after" ? "text-emerald-500" : "text-neutral-400 dark:text-neutral-600"}`}>
-                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-200
-                  ${phase === "after" ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/15" : "border-neutral-300 dark:border-neutral-700"}`}>
-                  B
-                </div>
-                <span className="font-medium">Part B</span>
-              </div>
-            </div>
-            <p className="text-neutral-400 dark:text-neutral-600 text-xs mt-8 text-center leading-relaxed">
-              Complete Part A, take a 5-minute break, then complete Part B
+            <h1 className="text-5xl md:text-6xl font-light tracking-tight text-neutral-900 dark:text-white">
+              Cognitive Task
+            </h1>
+            <p className="text-neutral-400 dark:text-neutral-500 max-w-md mx-auto text-base leading-relaxed mt-5">
+              Thank you for participating. This study consists of two short tasks
+              completed in two sessions with a break in between.
             </p>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="mt-20 text-center text-neutral-300 dark:text-neutral-800 text-xs tracking-wide">
-          <p>Cognitive Research Study</p>
+          <div className="max-w-xl w-full space-y-16">
+            {/* Participant ID */}
+            <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-12 shadow-sm shadow-neutral-900/[0.04] dark:shadow-none">
+              <label className="block text-[13px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-6">
+                Participant ID
+                <span className="text-neutral-400 dark:text-neutral-600 font-normal normal-case tracking-normal ml-2 text-sm lowercase">
+                  (optional)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={participantId}
+                onChange={(e) => setParticipantId(e.target.value)}
+                placeholder="Enter your ID..."
+                className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl px-6 py-5
+                           text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
+                           focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700 focus:bg-white dark:focus:bg-neutral-800/80
+                           transition-all duration-200 text-base"
+              />
+            </div>
+
+            {/* Session overview */}
+            <div className="bg-white/80 dark:bg-neutral-900/40 border border-neutral-200/70 dark:border-neutral-800/60 rounded-2xl p-12 shadow-sm shadow-neutral-900/[0.03] dark:shadow-none">
+              <h3 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-10 flex items-center gap-3">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                Session Overview
+              </h3>
+
+              <div className="space-y-5">
+                {[
+                  { num: "1", label: "Task 1 — Part A", color: "blue" },
+                  { num: "2", label: "Task 2 — Part A", color: "violet" },
+                  { num: "", label: "5 minute break", color: "neutral", isBreak: true },
+                  { num: "3", label: "Task 1 — Part B", color: "blue" },
+                  { num: "4", label: "Task 2 — Part B", color: "violet" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-5">
+                    {item.isBreak ? (
+                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-neutral-400 dark:text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold
+                        ${item.color === "blue" ? "border-blue-300 dark:border-blue-800 text-blue-500" : "border-violet-300 dark:border-violet-800 text-violet-500"}`}>
+                        {item.num}
+                      </div>
+                    )}
+                    <span className={`text-sm font-medium ${item.isBreak ? "text-neutral-400 dark:text-neutral-600 italic" : "text-neutral-600 dark:text-neutral-400"}`}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Start Button */}
+            <div className="pt-4">
+              <button
+                onClick={() => router.push(`/experiment?step=1&pid=${encodedPid}`)}
+                className="w-full py-6 rounded-2xl font-semibold text-lg transition-all duration-300 tracking-wide
+                  bg-neutral-900 dark:bg-white text-white dark:text-neutral-950
+                  hover:bg-neutral-800 dark:hover:bg-neutral-100
+                  shadow-xl shadow-neutral-900/15 dark:shadow-white/10
+                  hover:shadow-2xl hover:shadow-neutral-900/20 dark:hover:shadow-white/15
+                  hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
+              >
+                Begin Study
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-24 text-center text-neutral-300 dark:text-neutral-800 text-xs tracking-wide">
+            <p>Cognitive Research Study</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Break timer
+  if (step === 3) {
+    const mins = Math.floor(timeLeft / 60);
+    const secs = timeLeft % 60;
+    const progress = ((BREAK_SECONDS - timeLeft) / BREAK_SECONDS) * 100;
+
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
+
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+          <div className="text-center space-y-12 max-w-md">
+            <div>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm uppercase tracking-widest mb-6">
+                {breakDone ? "Break Complete" : "Break Time"}
+              </div>
+              <h2 className="text-4xl font-light text-neutral-900 dark:text-white">
+                {breakDone ? "Ready to continue?" : "Take a break"}
+              </h2>
+            </div>
+
+            {!breakDone && (
+              <p className="text-neutral-500 text-base leading-relaxed">
+                Please relax for 5 minutes. The timer will count down automatically.
+              </p>
+            )}
+
+            {/* Timer display */}
+            <div className="relative">
+              <div className="w-48 h-48 mx-auto relative">
+                {/* Background circle */}
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="2"
+                    className="text-neutral-200 dark:text-neutral-800" />
+                  <circle cx="50" cy="50" r="44" fill="none" strokeWidth="2"
+                    strokeDasharray={`${2 * Math.PI * 44}`}
+                    strokeDashoffset={`${2 * Math.PI * 44 * (1 - progress / 100)}`}
+                    strokeLinecap="round"
+                    className="text-neutral-900 dark:text-white transition-all duration-1000"
+                    stroke="currentColor" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-5xl font-light tabular-nums text-neutral-900 dark:text-white">
+                    {mins}:{secs.toString().padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {breakDone && (
+              <p className="text-neutral-500 text-base leading-relaxed">
+                Part A is complete. You&apos;ll now repeat both tasks for Part B.
+              </p>
+            )}
+
+            <div className="pt-4">
+              <button
+                onClick={() => router.push(`/experiment?step=4&pid=${encodeURIComponent(pid)}`)}
+                disabled={!breakDone}
+                className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300
+                  ${breakDone
+                    ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
+                  }`}
+              >
+                {breakDone ? "Continue to Part B" : "Waiting..."}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 6+: Complete
+  if (step >= 6) {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
+
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+          <div className="text-center space-y-10 max-w-md">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border-2 border-emerald-200 dark:border-emerald-800">
+              <svg className="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-4xl font-light text-neutral-900 dark:text-white mb-4">
+                Study Complete
+              </h2>
+              <p className="text-neutral-500 text-base leading-relaxed">
+                Thank you for your participation. Your responses have been recorded.
+                You may now close this window.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Task steps (1, 2, 4, 5): Loading while redirecting
+  const config = TASK_STEPS[step - 1];
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+      <div className="text-center space-y-5">
+        <div className="animate-spin w-8 h-8 border-2 border-neutral-200 dark:border-neutral-600 border-t-neutral-600 dark:border-t-white rounded-full mx-auto" />
+        <div className="text-neutral-500 dark:text-neutral-400">
+          {config ? `Loading ${config.label} — ${config.part}...` : "Loading..."}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ExperimentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+          <div className="animate-pulse text-neutral-400">Loading...</div>
+        </div>
+      }
+    >
+      <ExperimentContent />
+    </Suspense>
   );
 }

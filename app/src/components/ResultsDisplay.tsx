@@ -9,6 +9,7 @@ interface ResultsDisplayProps {
   phase: Phase;
   isExperiment?: boolean;
   homePath?: string;
+  nextUrl?: string;
 }
 
 export default function ResultsDisplay({
@@ -17,6 +18,7 @@ export default function ResultsDisplay({
   phase,
   isExperiment = false,
   homePath = "/",
+  nextUrl,
 }: ResultsDisplayProps) {
   const router = useRouter();
 
@@ -205,13 +207,25 @@ export default function ResultsDisplay({
 
         {/* Actions */}
         <div className="flex justify-center gap-4 pt-4">
-          <button
-            onClick={() => router.push(homePath)}
-            className="px-8 py-3.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white rounded-full font-semibold
-                       hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200 border border-neutral-200 dark:border-neutral-700"
-          >
-            Back to Home
-          </button>
+          {!nextUrl && (
+            <button
+              onClick={() => router.push(homePath)}
+              className="px-8 py-3.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white rounded-full font-semibold
+                         hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors duration-200 border border-neutral-200 dark:border-neutral-700"
+            >
+              Back to Home
+            </button>
+          )}
+          {nextUrl && (
+            <button
+              onClick={() => router.push(nextUrl)}
+              className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                         hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200
+                         shadow-lg shadow-neutral-900/15 dark:shadow-white/10 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            >
+              Continue
+            </button>
+          )}
         </div>
       </div>
     </div>
