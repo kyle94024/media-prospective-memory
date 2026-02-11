@@ -289,7 +289,7 @@ export default function TaskRunner({
             </kbd>
             <span>Non-word</span>
           </div>
-          {taskType === "PM" && (
+          {taskType === "PM" && isTraining && (
             <>
               <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
               {PM_CUES.map((cue) => (
