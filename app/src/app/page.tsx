@@ -242,6 +242,22 @@ export default function Home() {
             </button>
           </div>
 
+          {/* Experiment mode link */}
+          <div className="text-center">
+            <button
+              onClick={() => router.push("/experiment")}
+              className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400
+                         hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors duration-200
+                         border border-neutral-200 dark:border-neutral-800 rounded-full
+                         hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              Launch Experiment Mode
+            </button>
+          </div>
+
           {/* Study flow diagram */}
           <div className="bg-white/80 dark:bg-neutral-900/40 border border-neutral-200/70 dark:border-neutral-800/60 rounded-2xl p-8 shadow-sm shadow-neutral-900/[0.03] dark:shadow-none">
             <h3 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-7 flex items-center gap-3">

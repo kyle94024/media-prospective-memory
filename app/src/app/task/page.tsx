@@ -22,6 +22,7 @@ function TaskContent() {
   const phase = (searchParams.get("phase") as Phase) || "before";
   const participantId = searchParams.get("pid") || "anonymous";
   const isExperiment = searchParams.get("mode") === "experiment";
+  const experimentStep = parseInt(searchParams.get("step") || "0");
 
   const [currentPhase, setCurrentPhase] = useState<TaskPhase>("instructions");
   const [sessionId] = useState(
@@ -97,6 +98,9 @@ function TaskContent() {
     : (taskType === "PM" ? "Prospective Memory" : "Lexical Decision");
 
   const homePath = isExperiment ? "/experiment" : "/";
+  const nextExperimentUrl = isExperiment
+    ? `/experiment?step=${experimentStep + 1}&pid=${encodeURIComponent(participantId)}`
+    : undefined;
 
   switch (currentPhase) {
     case "instructions":
@@ -182,7 +186,7 @@ function TaskContent() {
         );
       }
       return (
-        <ResultsDisplay results={results} taskType={taskType} phase={phase} isExperiment={isExperiment} homePath={homePath} />
+        <ResultsDisplay results={results} taskType={taskType} phase={phase} isExperiment={isExperiment} homePath={homePath} nextUrl={nextExperimentUrl} />
       );
   }
 }
