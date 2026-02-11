@@ -4,10 +4,18 @@ import { TaskType, PM_CUES } from "@/lib/types";
 
 interface InstructionsProps {
   taskType: TaskType;
+  isExperiment?: boolean;
   onContinue: () => void;
 }
 
-export default function Instructions({ taskType, onContinue }: InstructionsProps) {
+export default function Instructions({ taskType, isExperiment = false, onContinue }: InstructionsProps) {
+  const taskTitle = isExperiment
+    ? (taskType === "LD" ? "Task 1" : "Task 2")
+    : (taskType === "LD" ? "Lexical Decision Task" : "Prospective Memory Task");
+
+  const primaryHeading = isExperiment ? "Word Classification" : "Lexical Decision";
+  const secondaryHeading = isExperiment ? "Additional Rule" : "Prospective Memory Component";
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 px-4 py-12 transition-colors duration-200">
       <div className="max-w-2xl w-full space-y-10">
@@ -17,9 +25,7 @@ export default function Instructions({ taskType, onContinue }: InstructionsProps
             Instructions
           </div>
           <h1 className="text-3xl font-light text-neutral-900 dark:text-white">
-            {taskType === "LD"
-              ? "Lexical Decision Task"
-              : "Prospective Memory Task"}
+            {taskTitle}
           </h1>
         </div>
 
@@ -27,7 +33,7 @@ export default function Instructions({ taskType, onContinue }: InstructionsProps
         <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-7">
           <div>
             <h2 className="text-lg font-semibold text-neutral-800 dark:text-white mb-4">
-              Lexical Decision
+              {primaryHeading}
             </h2>
             <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed text-[15px]">
               You will see a string of letters appear on the screen. Your task is to
@@ -60,10 +66,10 @@ export default function Instructions({ taskType, onContinue }: InstructionsProps
           <div className="bg-white dark:bg-neutral-900/50 border border-violet-200 dark:border-violet-900/30 rounded-2xl p-9 space-y-7">
             <div>
               <h2 className="text-lg font-semibold text-neutral-800 dark:text-white mb-4">
-                Prospective Memory Component
+                {secondaryHeading}
               </h2>
               <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed text-[15px]">
-                In addition to the lexical decision task, you must{" "}
+                In addition to {isExperiment ? "classifying words" : "the lexical decision task"}, you must{" "}
                 <span className="text-neutral-900 dark:text-white font-semibold">
                   remember to press a special key
                 </span>{" "}
@@ -99,7 +105,7 @@ export default function Instructions({ taskType, onContinue }: InstructionsProps
             </div>
 
             <p className="text-neutral-500 text-sm leading-relaxed">
-              These color words will appear occasionally among the regular stimuli.
+              These color words will appear occasionally among the regular {isExperiment ? "items" : "stimuli"}.
               You must remember to press the correct key when you see them.
             </p>
           </div>
@@ -113,11 +119,11 @@ export default function Instructions({ taskType, onContinue }: InstructionsProps
           <ul className="text-neutral-600 dark:text-neutral-500 text-sm space-y-3 leading-relaxed">
             <li className="flex items-start gap-3">
               <span className="text-neutral-300 dark:text-neutral-600 mt-0.5">&#8226;</span>
-              Each stimulus appears for a maximum of 3 seconds
+              Each {isExperiment ? "item" : "stimulus"} appears for a maximum of 3 seconds
             </li>
             <li className="flex items-start gap-3">
               <span className="text-neutral-300 dark:text-neutral-600 mt-0.5">&#8226;</span>
-              A fixation cross (+) will appear before each stimulus
+              A fixation cross (+) will appear before each {isExperiment ? "item" : "stimulus"}
             </li>
             <li className="flex items-start gap-3">
               <span className="text-neutral-300 dark:text-neutral-600 mt-0.5">&#8226;</span>
