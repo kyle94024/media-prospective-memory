@@ -5,13 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 const BREAK_SECONDS = 5 * 60;
 
-const TASK_STEPS = [
-  { task: "LD", phase: "before", label: "Task 1", part: "Part A" },
-  { task: "PM", phase: "before", label: "Task 2", part: "Part A" },
-  null, // break
-  { task: "LD", phase: "after", label: "Task 1", part: "Part B" },
-  { task: "PM", phase: "after", label: "Task 2", part: "Part B" },
-];
+// Step 0: Welcome, Step 1: PM before, Step 2: Break, Step 3: PM after, Step 4+: Complete
+const TASK_STEPS: Record<number, { task: string; phase: string; label: string; part: string }> = {
+  1: { task: "PM", phase: "before", label: "Task", part: "Part A" },
+  3: { task: "PM", phase: "after", label: "Task", part: "Part B" },
+};
 
 function ExperimentContent() {
   const searchParams = useSearchParams();
@@ -26,7 +24,7 @@ function ExperimentContent() {
 
   // Break countdown timer
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 2) return;
     if (timeLeft <= 0) {
       setBreakDone(true);
       return;
@@ -35,16 +33,14 @@ function ExperimentContent() {
     return () => clearInterval(interval);
   }, [step, timeLeft]);
 
-  // Auto-navigate for task steps (1, 2, 4, 5)
+  // Auto-navigate for task steps (1, 3)
   useEffect(() => {
-    if (step >= 1 && step <= 5 && step !== 3) {
-      const config = TASK_STEPS[step - 1];
-      if (config) {
-        const encodedPid = encodeURIComponent(pid || "anonymous");
-        router.replace(
-          `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}`
-        );
-      }
+    const config = TASK_STEPS[step];
+    if (config) {
+      const encodedPid = encodeURIComponent(pid || "anonymous");
+      router.replace(
+        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}`
+      );
     }
   }, [step, pid, router]);
 
@@ -68,7 +64,7 @@ function ExperimentContent() {
               Cognitive Task
             </h1>
             <p className="text-neutral-400 dark:text-neutral-500 max-w-md mx-auto text-base leading-relaxed mt-5">
-              Thank you for participating. This study consists of two short tasks
+              Thank you for participating. This study consists of a short task
               completed in two sessions with a break in between.
             </p>
           </div>
@@ -103,11 +99,9 @@ function ExperimentContent() {
 
               <div className="space-y-5">
                 {[
-                  { num: "1", label: "Task 1 — Part A", color: "blue" },
-                  { num: "2", label: "Task 2 — Part A", color: "violet" },
-                  { num: "", label: "5 minute break", color: "neutral", isBreak: true },
-                  { num: "3", label: "Task 1 — Part B", color: "blue" },
-                  { num: "4", label: "Task 2 — Part B", color: "violet" },
+                  { num: "1", label: "Task — Part A", isBreak: false },
+                  { num: "", label: "5 minute break", isBreak: true },
+                  { num: "2", label: "Task — Part B", isBreak: false },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-5">
                     {item.isBreak ? (
@@ -117,8 +111,7 @@ function ExperimentContent() {
                         </svg>
                       </div>
                     ) : (
-                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold
-                        ${item.color === "blue" ? "border-blue-300 dark:border-blue-800 text-blue-500" : "border-violet-300 dark:border-violet-800 text-violet-500"}`}>
+                      <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold border-violet-300 dark:border-violet-800 text-violet-500">
                         {item.num}
                       </div>
                     )}
@@ -154,8 +147,8 @@ function ExperimentContent() {
     );
   }
 
-  // Step 3: Break timer
-  if (step === 3) {
+  // Step 2: Break timer
+  if (step === 2) {
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
     const progress = ((BREAK_SECONDS - timeLeft) / BREAK_SECONDS) * 100;
@@ -205,13 +198,13 @@ function ExperimentContent() {
 
             {breakDone && (
               <p className="text-neutral-500 text-base leading-relaxed">
-                Part A is complete. You&apos;ll now repeat both tasks for Part B.
+                Part A is complete. You&apos;ll now repeat the task for Part B.
               </p>
             )}
 
             <div className="pt-4">
               <button
-                onClick={() => router.push(`/experiment?step=4&pid=${encodeURIComponent(pid)}`)}
+                onClick={() => router.push(`/experiment?step=3&pid=${encodeURIComponent(pid)}`)}
                 disabled={!breakDone}
                 className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300
                   ${breakDone
@@ -228,8 +221,8 @@ function ExperimentContent() {
     );
   }
 
-  // Step 6+: Complete
-  if (step >= 6) {
+  // Step 4+: Complete
+  if (step >= 4) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
@@ -256,8 +249,8 @@ function ExperimentContent() {
     );
   }
 
-  // Task steps (1, 2, 4, 5): Loading while redirecting
-  const config = TASK_STEPS[step - 1];
+  // Task steps (1, 3): Loading while redirecting
+  const config = TASK_STEPS[step];
   return (
     <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
       <div className="text-center space-y-5">
