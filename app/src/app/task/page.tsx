@@ -21,6 +21,7 @@ function TaskContent() {
   const taskType = (searchParams.get("task") as TaskType) || "LD";
   const phase = (searchParams.get("phase") as Phase) || "before";
   const participantId = searchParams.get("pid") || "anonymous";
+  const isExperiment = searchParams.get("mode") === "experiment";
 
   const [currentPhase, setCurrentPhase] = useState<TaskPhase>("instructions");
   const [sessionId] = useState(
@@ -91,13 +92,18 @@ function TaskContent() {
     return null;
   }
 
-  const taskLabel = taskType === "PM" ? "Task 2" : "Task 1";
+  const taskLabel = isExperiment
+    ? (taskType === "PM" ? "Task 2" : "Task 1")
+    : (taskType === "PM" ? "Prospective Memory" : "Lexical Decision");
+
+  const homePath = isExperiment ? "/experiment" : "/";
 
   switch (currentPhase) {
     case "instructions":
       return (
         <Instructions
           taskType={taskType}
+          isExperiment={isExperiment}
           onContinue={() => setCurrentPhase("training")}
         />
       );
@@ -108,6 +114,7 @@ function TaskContent() {
           taskType={taskType}
           phase={phase}
           sessionId={`${sessionId}-training`}
+          isExperiment={isExperiment}
           onComplete={handleTrainingComplete}
           isTraining={true}
         />
@@ -145,7 +152,7 @@ function TaskContent() {
                 className="px-9 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
                            hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
               >
-                Start {taskLabel}
+                Start {isExperiment ? taskLabel : "Main Task"}
               </button>
             </div>
           </div>
@@ -158,6 +165,7 @@ function TaskContent() {
           taskType={taskType}
           phase={phase}
           sessionId={sessionId}
+          isExperiment={isExperiment}
           onComplete={handleMainTaskComplete}
         />
       );
@@ -174,7 +182,7 @@ function TaskContent() {
         );
       }
       return (
-        <ResultsDisplay results={results} taskType={taskType} phase={phase} />
+        <ResultsDisplay results={results} taskType={taskType} phase={phase} isExperiment={isExperiment} homePath={homePath} />
       );
   }
 }

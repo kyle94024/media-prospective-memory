@@ -21,6 +21,7 @@ interface TaskRunnerProps {
   taskType: TaskType;
   phase: Phase;
   sessionId: string;
+  isExperiment?: boolean;
   onComplete: (results: TrialResult[]) => void;
   isTraining?: boolean;
 }
@@ -29,6 +30,7 @@ export default function TaskRunner({
   taskType,
   phase,
   sessionId,
+  isExperiment = false,
   onComplete,
   isTraining = false,
 }: TaskRunnerProps) {
@@ -185,8 +187,12 @@ export default function TaskRunner({
   const currentTrial = trials[trialIndex];
   const progress = trials.length > 0 ? ((trialIndex + 1) / trials.length) * 100 : 0;
 
-  const taskLabel = taskType === "PM" ? "Task 2" : "Task 1";
-  const partLabel = phase === "before" ? "Part A" : "Part B";
+  const taskLabel = isExperiment
+    ? (taskType === "PM" ? "Task 2" : "Task 1")
+    : (taskType === "PM" ? "Prospective Memory Task" : "Lexical Decision Task");
+  const partLabel = isExperiment
+    ? (phase === "before" ? "Part A" : "Part B")
+    : (phase === "before" ? "Pre-Interruption" : "Post-Interruption");
 
   // Ready screen
   if (stage === "ready") {

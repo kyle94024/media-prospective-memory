@@ -4,8 +4,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
-  title: "Cognitive Task",
-  description: "Research study — cognitive task",
+  title: "Prospective Memory Study",
+  description:
+    "Lexical Decision and Prospective Memory task — based on Chiossi et al. (CHI 2023)",
 };
 
 export default function RootLayout({
