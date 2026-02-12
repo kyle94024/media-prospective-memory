@@ -108,15 +108,14 @@ export default function TaskRunner({
 
         if (isTraining) {
           setFeedback({ correct: false, message: "Too slow! Try to respond faster." });
-          setStage("feedback");
-          timerRef.current = setTimeout(() => {
-            setStage("isi");
-            timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
-          }, 800);
         } else {
+          setFeedback({ correct: false, message: "Out of time" });
+        }
+        setStage("feedback");
+        timerRef.current = setTimeout(() => {
           setStage("isi");
           timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
-        }
+        }, 800);
       }, TIMING.STIMULUS_MAX_DURATION);
     }, fd);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,39 +273,41 @@ export default function TaskRunner({
         )}
       </div>
 
-      {/* Key reminders */}
-      <div className="fixed bottom-10 left-0 right-0">
-        <div className="flex justify-center gap-10 text-neutral-400 dark:text-neutral-600 text-sm">
-          <div className="flex items-center gap-2.5">
-            <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
-              N
-            </kbd>
-            <span>Word</span>
+      {/* Key reminders — only shown during practice */}
+      {isTraining && (
+        <div className="fixed bottom-10 left-0 right-0">
+          <div className="flex justify-center gap-10 text-neutral-400 dark:text-neutral-600 text-sm">
+            <div className="flex items-center gap-2.5">
+              <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                N
+              </kbd>
+              <span>Word</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                M
+              </kbd>
+              <span>Non-word</span>
+            </div>
+            {taskType === "PM" && (
+              <>
+                <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
+                {PM_CUES.map((cue) => (
+                  <div key={cue.key} className="flex items-center gap-2.5">
+                    <kbd
+                      className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md font-mono text-xs border shadow-sm"
+                      style={{ color: cue.color, borderColor: `${cue.color}40` }}
+                    >
+                      {cue.key.toUpperCase()}
+                    </kbd>
+                    <span style={{ color: cue.color }}>{cue.word}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2.5">
-            <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
-              M
-            </kbd>
-            <span>Non-word</span>
-          </div>
-          {taskType === "PM" && isTraining && (
-            <>
-              <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
-              {PM_CUES.map((cue) => (
-                <div key={cue.key} className="flex items-center gap-2.5">
-                  <kbd
-                    className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md font-mono text-xs border shadow-sm"
-                    style={{ color: cue.color, borderColor: `${cue.color}40` }}
-                  >
-                    {cue.key.toUpperCase()}
-                  </kbd>
-                  <span style={{ color: cue.color }}>{cue.word}</span>
-                </div>
-              ))}
-            </>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
