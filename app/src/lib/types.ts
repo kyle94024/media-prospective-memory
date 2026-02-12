@@ -56,7 +56,7 @@ export const TIMING = {
   ISI: 500, // inter-stimulus interval
   TRAINING_TRIALS: 10,
   LD_TRIALS_PER_BLOCK: 50,
-  PM_TRIALS_PER_BLOCK: 10,
+  PM_TRIALS_PER_BLOCK: 12,
   MIN_LD_BEFORE_FIRST_PM: 5,
   MIN_LD_BETWEEN_PM: 5,
 };
