@@ -51,6 +51,7 @@ export async function initializeDatabase() {
       participant_id TEXT NOT NULL,
       platform TEXT NOT NULL,
       daily_usage TEXT NOT NULL,
+      condition TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;

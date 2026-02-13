@@ -242,10 +242,10 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Experiment mode link */}
-          <div className="text-center">
+          {/* Experiment mode links */}
+          <div className="flex gap-4 justify-center">
             <button
-              onClick={() => router.push("/experiment")}
+              onClick={() => router.push("/experimentA")}
               className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400
                          hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors duration-200
                          border border-neutral-200 dark:border-neutral-800 rounded-full
@@ -254,7 +254,19 @@ export default function Home() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
-              Launch Experiment Mode
+              Experiment A
+            </button>
+            <button
+              onClick={() => router.push("/experiment1")}
+              className="inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium text-neutral-500 dark:text-neutral-400
+                         hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors duration-200
+                         border border-neutral-200 dark:border-neutral-800 rounded-full
+                         hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              Experiment 1
             </button>
           </div>
 
@@ -279,7 +291,7 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="font-medium">10 min break</span>
+                <span className="font-medium">5 min break</span>
               </div>
               <div className="flex-1 h-px bg-gradient-to-r from-neutral-300 via-neutral-200 to-neutral-300 dark:from-neutral-700 dark:via-neutral-800 dark:to-neutral-700 mx-4" />
               <div className={`flex flex-col items-center gap-2.5 transition-colors duration-200 ${phase === "after" ? "text-emerald-500" : "text-neutral-400 dark:text-neutral-600"}`}>

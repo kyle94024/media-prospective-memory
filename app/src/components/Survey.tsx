@@ -4,6 +4,7 @@ import { useState } from "react";
 
 interface SurveyProps {
   participantId: string;
+  condition?: string;
   onComplete: () => void;
 }
 
@@ -40,7 +41,7 @@ const PLATFORMS = [
   },
 ];
 
-export default function Survey({ participantId, onComplete }: SurveyProps) {
+export default function Survey({ participantId, condition, onComplete }: SurveyProps) {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -58,6 +59,7 @@ export default function Survey({ participantId, onComplete }: SurveyProps) {
           participantId,
           platform: selectedPlatform,
           dailyUsage: dailyUsage.trim(),
+          condition: condition || null,
         }),
       });
     } catch (e) {
