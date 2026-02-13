@@ -44,4 +44,14 @@ export async function initializeDatabase() {
   await sql`
     CREATE INDEX IF NOT EXISTS idx_trials_session ON trials(session_id)
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS survey_responses (
+      id SERIAL PRIMARY KEY,
+      participant_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      daily_usage TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 }

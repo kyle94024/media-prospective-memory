@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Survey from "@/components/Survey";
 
 const BREAK_SECONDS = 10 * 60;
 
@@ -11,7 +12,8 @@ const BREAK_SECONDS = 10 * 60;
 // Step 3: Actual PM Part A (skipTraining)
 // Step 4: Break
 // Step 5: Actual PM Part B (skipTraining)
-// Step 6+: Complete
+// Step 6: Survey
+// Step 7+: Complete
 const TASK_STEPS: Record<number, { task: string; phase: string; label: string; part: string; extra: string }> = {
   1: { task: "LD", phase: "before", label: "Practice", part: "Word Classification", extra: "&trainingOnly=true" },
   2: { task: "PM", phase: "before", label: "Practice", part: "Full Task", extra: "&trainingOnly=true" },
@@ -241,8 +243,18 @@ function ExperimentContent() {
     );
   }
 
-  // Step 6+: Complete
-  if (step >= 6) {
+  // Step 6: Survey
+  if (step === 6) {
+    return (
+      <Survey
+        participantId={pid || "anonymous"}
+        onComplete={() => router.push(`/experiment?step=7&pid=${encodeURIComponent(pid)}`)}
+      />
+    );
+  }
+
+  // Step 7+: Complete
+  if (step >= 7) {
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />

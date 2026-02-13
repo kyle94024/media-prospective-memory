@@ -143,11 +143,11 @@ function TaskContent() {
                 "You\u2019ve completed this practice round. Let\u2019s continue to the next step."
               ) : (
                 <>
-                  The main task is the same as practice, but without feedback.
+                  The main task is the same as practice, but without feedback or key reminders.
                   Remember to respond as quickly and accurately as possible.
                   {taskType === "PM" && (
-                    <span className="block mt-3 text-violet-600 dark:text-violet-400 font-medium">
-                      Don&apos;t forget to press the special keys when color words appear!
+                    <span className="block mt-4 px-4 py-3 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded-lg text-violet-700 dark:text-violet-300 font-medium text-sm">
+                      Remember: You still need to press Q, W, or E when you see a color word. No reminders will be shown on screen — you must rely on your memory.
                     </span>
                   )}
                 </>
@@ -201,6 +201,44 @@ function TaskContent() {
             <div className="text-center space-y-5">
               <div className="animate-spin w-8 h-8 border-2 border-neutral-200 dark:border-neutral-600 border-t-neutral-600 dark:border-t-white rounded-full mx-auto" />
               <div className="text-neutral-500 dark:text-neutral-400">Saving results...</div>
+            </div>
+          </div>
+        );
+      }
+      if (isExperiment) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+            <div className="text-center space-y-8 max-w-lg px-4">
+              <div className="inline-flex items-center gap-2 text-emerald-500 text-sm uppercase tracking-widest">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Section Complete
+              </div>
+              <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
+                Nice work!
+              </h2>
+              <p className="text-neutral-500 text-base">
+                Your responses have been recorded. Let&apos;s continue to the next part.
+              </p>
+              {nextExperimentUrl && (
+                <button
+                  onClick={() => router.push(nextExperimentUrl)}
+                  className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200"
+                >
+                  Continue
+                </button>
+              )}
+              {!nextExperimentUrl && (
+                <button
+                  onClick={() => router.push(homePath)}
+                  className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200"
+                >
+                  Finish
+                </button>
+              )}
             </div>
           </div>
         );
