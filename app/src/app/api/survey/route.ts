@@ -4,7 +4,7 @@ import { getDb, initializeDatabase } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { participantId, platform, dailyUsage } = body;
+    const { participantId, platform, dailyUsage, condition } = body;
 
     if (!platform || !dailyUsage) {
       return NextResponse.json(
@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const sql = getDb();
 
     await sql`
-      INSERT INTO survey_responses (participant_id, platform, daily_usage)
-      VALUES (${participantId || "anonymous"}, ${platform}, ${dailyUsage})
+      INSERT INTO survey_responses (participant_id, platform, daily_usage, condition)
+      VALUES (${participantId || "anonymous"}, ${platform}, ${dailyUsage}, ${condition || null})
     `;
 
     return NextResponse.json({ success: true });

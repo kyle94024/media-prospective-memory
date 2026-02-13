@@ -23,6 +23,7 @@ function TaskContent() {
   const participantId = searchParams.get("pid") || "anonymous";
   const isExperiment = searchParams.get("mode") === "experiment";
   const experimentStep = parseInt(searchParams.get("step") || "0");
+  const expPath = searchParams.get("expPath") || "/experiment";
   const trainingOnly = searchParams.get("trainingOnly") === "true";
   const skipTraining = searchParams.get("skipTraining") === "true";
 
@@ -101,9 +102,9 @@ function TaskContent() {
     ? "Task"
     : (taskType === "PM" ? "Prospective Memory" : "Lexical Decision");
 
-  const homePath = isExperiment ? "/experiment" : "/";
+  const homePath = isExperiment ? expPath : "/";
   const nextExperimentUrl = isExperiment
-    ? `/experiment?step=${experimentStep + 1}&pid=${encodeURIComponent(participantId)}`
+    ? `${expPath}?step=${experimentStep + 1}&pid=${encodeURIComponent(participantId)}`
     : undefined;
 
   switch (currentPhase) {
