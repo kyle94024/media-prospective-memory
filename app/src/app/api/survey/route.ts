@@ -4,21 +4,14 @@ import { getDb, initializeDatabase } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { participantId, platform, dailyUsage, condition } = body;
-
-    if (!platform || !dailyUsage) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+    const { participantId, studyId, platformMostUsed, platformUsedDuring, dailyUsage, condition } = body;
 
     await initializeDatabase();
     const sql = getDb();
 
     await sql`
-      INSERT INTO survey_responses (participant_id, platform, daily_usage, condition)
-      VALUES (${participantId || "anonymous"}, ${platform}, ${dailyUsage}, ${condition || null})
+      INSERT INTO survey_responses (participant_id, study_id, platform_most_used, platform_used_during, daily_usage, condition)
+      VALUES (${participantId || "anonymous"}, ${studyId || null}, ${platformMostUsed || null}, ${platformUsedDuring || null}, ${dailyUsage || null}, ${condition || null})
     `;
 
     return NextResponse.json({ success: true });

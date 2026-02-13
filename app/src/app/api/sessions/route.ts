@@ -4,14 +4,14 @@ import { getDb, initializeDatabase } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, participantId, taskType, phase, startedAt } = body;
+    const { id, participantId, taskType, phase, startedAt, studyId } = body;
 
     await initializeDatabase();
     const sql = getDb();
 
     await sql`
-      INSERT INTO sessions (id, participant_id, task_type, phase, started_at)
-      VALUES (${id}, ${participantId}, ${taskType}, ${phase}, ${startedAt})
+      INSERT INTO sessions (id, participant_id, task_type, phase, study_id, started_at)
+      VALUES (${id}, ${participantId}, ${taskType}, ${phase}, ${studyId || null}, ${startedAt})
     `;
 
     return NextResponse.json({ success: true, id });

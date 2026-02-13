@@ -26,6 +26,7 @@ function TaskContent() {
   const expPath = searchParams.get("expPath") || "/experiment";
   const trainingOnly = searchParams.get("trainingOnly") === "true";
   const skipTraining = searchParams.get("skipTraining") === "true";
+  const studyId = searchParams.get("studyId") || "";
 
   const [currentPhase, setCurrentPhase] = useState<TaskPhase>(
     skipTraining ? "main_task" : "instructions"
@@ -47,6 +48,7 @@ function TaskContent() {
             participantId,
             taskType,
             phase,
+            studyId: studyId || undefined,
             startedAt: Date.now(),
           }),
         });
@@ -104,7 +106,7 @@ function TaskContent() {
 
   const homePath = isExperiment ? expPath : "/";
   const nextExperimentUrl = isExperiment
-    ? `${expPath}?step=${experimentStep + 1}&pid=${encodeURIComponent(participantId)}`
+    ? `${expPath}?step=${experimentStep + 1}&pid=${encodeURIComponent(participantId)}&studyId=${encodeURIComponent(studyId)}`
     : undefined;
 
   switch (currentPhase) {

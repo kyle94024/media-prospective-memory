@@ -29,8 +29,10 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
 
   const step = parseInt(searchParams.get("step") || "0");
   const pid = searchParams.get("pid") || "";
+  const existingStudyId = searchParams.get("studyId") || "";
 
   const [participantId, setParticipantId] = useState(pid);
+  const [studyId] = useState(() => existingStudyId || `study-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [timeLeft, setTimeLeft] = useState(BREAK_SECONDS);
   const [breakStarted, setBreakStarted] = useState(false);
   const [breakDone, setBreakDone] = useState(false);
@@ -63,10 +65,10 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
     if (config) {
       const encodedPid = encodeURIComponent(pid || "anonymous");
       router.replace(
-        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}&expPath=${encodeURIComponent(basePath)}${config.extra}`
+        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}&expPath=${encodeURIComponent(basePath)}&studyId=${encodeURIComponent(studyId)}${config.extra}`
       );
     }
-  }, [step, pid, router, basePath]);
+  }, [step, pid, router, basePath, studyId]);
 
   const encodedPid = encodeURIComponent(participantId.trim() || "anonymous");
 
@@ -162,7 +164,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
             {/* Start Button */}
             <div className="pt-4">
               <button
-                onClick={() => router.push(`${basePath}?step=1&pid=${encodedPid}`)}
+                onClick={() => router.push(`${basePath}?step=1&pid=${encodedPid}&studyId=${encodeURIComponent(studyId)}`)}
                 className="w-full py-6 rounded-2xl font-semibold text-lg transition-all duration-300 tracking-wide
                   bg-neutral-900 dark:bg-white text-white dark:text-neutral-950
                   hover:bg-neutral-800 dark:hover:bg-neutral-100
@@ -381,7 +383,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
 
             <div className="pt-4">
               <button
-                onClick={() => router.push(`${basePath}?step=5&pid=${encodeURIComponent(pid)}`)}
+                onClick={() => router.push(`${basePath}?step=5&pid=${encodeURIComponent(pid)}&studyId=${encodeURIComponent(studyId)}`)}
                 disabled={!breakDone}
                 className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300
                   ${breakDone
@@ -403,8 +405,9 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
     return (
       <Survey
         participantId={pid || "anonymous"}
+        studyId={studyId}
         condition={condition}
-        onComplete={() => router.push(`${basePath}?step=7&pid=${encodeURIComponent(pid)}`)}
+        onComplete={() => router.push(`${basePath}?step=7&pid=${encodeURIComponent(pid)}&studyId=${encodeURIComponent(studyId)}`)}
       />
     );
   }
