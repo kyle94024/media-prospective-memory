@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Survey from "@/components/Survey";
 
@@ -32,18 +32,21 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
 
   const [participantId, setParticipantId] = useState(pid);
   const [timeLeft, setTimeLeft] = useState(BREAK_SECONDS);
+  const [breakStarted, setBreakStarted] = useState(false);
   const [breakDone, setBreakDone] = useState(false);
+  const [breakAcknowledged, setBreakAcknowledged] = useState(false);
+  const breakCheckboxRef = useRef<HTMLLabelElement>(null);
 
-  // Break countdown timer
+  // Break countdown timer — only starts after participant clicks Start Break
   useEffect(() => {
-    if (step !== 4) return;
+    if (step !== 4 || !breakStarted) return;
     if (timeLeft <= 0) {
       setBreakDone(true);
       return;
     }
     const interval = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(interval);
-  }, [step, timeLeft]);
+  }, [step, timeLeft, breakStarted]);
 
   // Auto-navigate for task steps (1, 2, 3, 5)
   useEffect(() => {
@@ -171,12 +174,130 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
     );
   }
 
-  // Step 4: Break timer
+  // Step 4: Break
   if (step === 4) {
     const mins = Math.floor(timeLeft / 60);
     const secs = timeLeft % 60;
     const progress = ((BREAK_SECONDS - timeLeft) / BREAK_SECONDS) * 100;
 
+    const handleStartBreakClick = () => {
+      if (!breakAcknowledged && breakCheckboxRef.current) {
+        breakCheckboxRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        breakCheckboxRef.current.classList.add("animate-pulse");
+        setTimeout(() => breakCheckboxRef.current?.classList.remove("animate-pulse"), 1500);
+        return;
+      }
+      setBreakStarted(true);
+    };
+
+    // Phase 1: Instructions before break starts
+    if (!breakStarted) {
+      return (
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
+          <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
+
+          <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-16">
+            <div className="max-w-lg w-full space-y-10">
+              {/* Header */}
+              <div className="text-center space-y-4">
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm uppercase tracking-widest">
+                  Break Time
+                </div>
+                <h2 className="text-4xl font-light text-neutral-900 dark:text-white">
+                  Nice work on Part A!
+                </h2>
+              </div>
+
+              {/* Instructions card */}
+              <div className="bg-gradient-to-b from-sky-50 to-indigo-50 dark:from-sky-950/30 dark:to-indigo-950/30 border-2 border-sky-300 dark:border-sky-700 rounded-2xl p-8 space-y-6 ring-1 ring-sky-200 dark:ring-sky-800/50">
+                {/* Icon + heading */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-sky-900 dark:text-sky-200">
+                    Break Instructions
+                  </h3>
+                </div>
+
+                {/* Main instructions */}
+                <p className="text-neutral-700 dark:text-neutral-300 text-base leading-relaxed">
+                  Please take out your phone, connect your headphones, and open either{" "}
+                  <span className="font-semibold">TikTok</span>,{" "}
+                  <span className="font-semibold">Instagram Reels</span>, or{" "}
+                  <span className="font-semibold">YouTube Shorts</span>.
+                </p>
+
+                {condition === "unlimited" ? (
+                  <p className="text-neutral-700 dark:text-neutral-300 text-base leading-relaxed">
+                    For the next 5 minutes, please scroll like you usually would at home.
+                    We ask that you do nothing else except watch and scroll during this time.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-neutral-700 dark:text-neutral-300 text-base leading-relaxed">
+                      For the next 5 minutes, you will scroll on these platforms.
+                      However, <span className="font-semibold text-amber-700 dark:text-amber-400">do not scroll to the next video until the video you are watching is completed</span>.
+                      We ask that you do nothing else except watch and scroll during this time.
+                    </p>
+                    <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-xl px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-amber-800 dark:text-amber-300 text-sm font-semibold leading-relaxed">
+                          Reminder: You may only scroll to the next video when you have watched each video in its entirety.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <p className="text-neutral-600 dark:text-neutral-400 text-base leading-relaxed pt-1">
+                  You may now begin your break by pressing the button below.
+                </p>
+
+                {/* Acknowledgment checkbox */}
+                <label
+                  ref={breakCheckboxRef}
+                  className="flex items-start gap-4 cursor-pointer pt-4 border-t border-sky-200 dark:border-sky-800/50 bg-white/60 dark:bg-neutral-900/30 -mx-3 px-4 py-4 rounded-lg transition-all duration-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={breakAcknowledged}
+                    onChange={(e) => setBreakAcknowledged(e.target.checked)}
+                    className="mt-0.5 w-6 h-6 min-w-[1.5rem] rounded border-2 border-sky-400 dark:border-sky-500 text-sky-600 focus:ring-sky-500 focus:ring-2 cursor-pointer accent-sky-600"
+                  />
+                  <span className="text-base text-neutral-700 dark:text-neutral-300 leading-relaxed select-none">
+                    {condition === "limited"
+                      ? "I understand that I should watch each video in its entirety before scrolling to the next one."
+                      : "I understand the break instructions above."}
+                  </span>
+                </label>
+              </div>
+
+              {/* Start Break button */}
+              <div className="text-center pt-2">
+                <button
+                  onClick={handleStartBreakClick}
+                  className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
+                    breakAcknowledged
+                      ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                      : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400"
+                  }`}
+                >
+                  Start Break
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Phase 2: Timer countdown
     return (
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
@@ -185,32 +306,24 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
           <div className="text-center space-y-12 max-w-md">
             <div>
               <div className="text-neutral-400 dark:text-neutral-500 text-sm uppercase tracking-widest mb-6">
-                {breakDone ? "Break Complete" : "Break Time"}
+                {breakDone ? "Break Complete" : "Break in Progress"}
               </div>
               <h2 className="text-4xl font-light text-neutral-900 dark:text-white">
-                {breakDone ? "Ready to continue?" : "Take a break"}
+                {breakDone ? "Ready to continue?" : "Enjoy your break"}
               </h2>
             </div>
 
-            {!breakDone && (
-              <div className="space-y-5">
-                <p className="text-neutral-500 text-base leading-relaxed">
-                  Please use your phone to browse short-form videos (TikTok, Instagram Reels, YouTube Shorts, etc.) for the next 5 minutes.
+            {!breakDone && condition === "limited" && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-5 py-3 text-sm">
+                <p className="text-amber-800 dark:text-amber-300 font-medium">
+                  Remember: watch each video to completion before scrolling.
                 </p>
-                {condition === "limited" && (
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-5 py-4 text-left">
-                    <p className="text-amber-800 dark:text-amber-300 text-sm font-medium leading-relaxed">
-                      Please watch each video to its entirety before scrolling to the next one.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
             {/* Timer display */}
             <div className="relative">
               <div className="w-48 h-48 mx-auto relative">
-                {/* Background circle */}
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="2"
                     className="text-neutral-200 dark:text-neutral-800" />
