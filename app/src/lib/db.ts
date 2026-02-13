@@ -53,7 +53,6 @@ export async function initializeDatabase() {
       study_id TEXT,
       platform_most_used TEXT,
       platform_used_during TEXT,
-      break_usage TEXT,
       daily_usage TEXT,
       condition TEXT,
       created_at TIMESTAMP DEFAULT NOW()
