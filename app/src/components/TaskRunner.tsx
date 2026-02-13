@@ -219,6 +219,9 @@ export default function TaskRunner({
               <div className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider text-center">
                 Quick Reminder
               </div>
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm text-center leading-relaxed">
+                Key reminders and feedback will <span className="font-semibold text-neutral-700 dark:text-neutral-300">not</span> be shown during this task.
+              </p>
               <div className={`flex items-start justify-center gap-8 md:gap-14`}>
                 {/* Left hand */}
                 <div className="flex flex-col items-center gap-2">
