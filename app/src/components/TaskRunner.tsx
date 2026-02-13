@@ -187,17 +187,20 @@ export default function TaskRunner({
   const progress = trials.length > 0 ? ((trialIndex + 1) / trials.length) * 100 : 0;
 
   const taskLabel = isExperiment
-    ? (taskType === "PM" ? "Task 2" : "Task 1")
+    ? (phase === "before" ? "Task 1" : "Task 2")
     : (taskType === "PM" ? "Prospective Memory Task" : "Lexical Decision Task");
   const partLabel = isExperiment
     ? (phase === "before" ? "Part A" : "Part B")
     : (phase === "before" ? "Pre-Interruption" : "Post-Interruption");
 
+  // Show rules reminder on Part A ready screen only (not training, not Part B)
+  const showReadyReminder = !isTraining && taskType === "PM" && phase === "before";
+
   // Ready screen
   if (stage === "ready") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
-        <div className="text-center space-y-8">
+      <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200 px-4">
+        <div className="text-center space-y-8 max-w-lg">
           <div className="text-neutral-400 dark:text-neutral-400 text-sm uppercase tracking-widest">
             {isTraining ? "Training" : partLabel}
           </div>
@@ -209,6 +212,69 @@ export default function TaskRunner({
               ? `${trials.length} practice trials with feedback`
               : `${trials.length} trials`}
           </p>
+
+          {/* Compact rules reminder — Part A only */}
+          {showReadyReminder && (
+            <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 text-left space-y-5">
+              <div className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider text-center">
+                Quick Reminder
+              </div>
+              <div className={`flex items-start justify-center gap-8 md:gap-14`}>
+                {/* Left hand */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+                    Left Hand
+                  </div>
+                  <div className="flex gap-1.5">
+                    {PM_CUES.slice().reverse().map((cue) => (
+                      <div
+                        key={cue.key}
+                        className="w-10 h-10 rounded-lg border-2 flex items-center justify-center font-mono text-sm font-bold shadow-sm"
+                        style={{
+                          color: cue.color,
+                          borderColor: `${cue.color}50`,
+                          backgroundColor: `${cue.color}10`,
+                        }}
+                      >
+                        {cue.key.toUpperCase()}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-neutral-400 dark:text-neutral-600">
+                    Color-word cues
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="flex flex-col items-center gap-1 pt-4 self-stretch">
+                  <div className="flex-1 w-px bg-neutral-200 dark:bg-neutral-700" />
+                  <span className="text-[10px] text-neutral-400 dark:text-neutral-600 font-medium">+</span>
+                  <div className="flex-1 w-px bg-neutral-200 dark:bg-neutral-700" />
+                </div>
+
+                {/* Right hand */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="text-[10px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+                    Right Hand
+                  </div>
+                  <div className="flex gap-1.5">
+                    <div className="w-10 h-10 rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-mono text-sm font-bold text-blue-600 dark:text-blue-400 shadow-sm">
+                      N
+                    </div>
+                    <div className="w-10 h-10 rounded-lg border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center font-mono text-sm font-bold text-amber-600 dark:text-amber-400 shadow-sm">
+                      M
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 text-[10px]">
+                    <span className="text-blue-500">Word</span>
+                    <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                    <span className="text-amber-500">Non-word</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => showTrial(0)}
             className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold

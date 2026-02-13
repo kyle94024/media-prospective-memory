@@ -59,7 +59,7 @@ export default function ResultsDisplay({
     : 0;
 
   const taskLabel = isExperiment
-    ? (taskType === "PM" ? "Task 2" : "Task 1")
+    ? (phase === "before" ? "Task 1" : "Task 2")
     : (taskType === "PM" ? "Prospective Memory" : "Lexical Decision");
   const phaseLabel = isExperiment
     ? (phase === "before" ? "Part A" : "Part B")
