@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { TaskType, PM_CUES } from "@/lib/types";
 
 interface InstructionsProps {
@@ -11,7 +11,18 @@ interface InstructionsProps {
 
 export default function Instructions({ taskType, isExperiment = false, onContinue }: InstructionsProps) {
   const [pmAcknowledged, setPmAcknowledged] = useState(false);
+  const checkboxRef = useRef<HTMLLabelElement>(null);
   const canContinue = taskType !== "PM" || pmAcknowledged;
+
+  const handleContinueClick = () => {
+    if (!canContinue && checkboxRef.current) {
+      checkboxRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      checkboxRef.current.classList.add("animate-pulse");
+      setTimeout(() => checkboxRef.current?.classList.remove("animate-pulse"), 1500);
+      return;
+    }
+    onContinue();
+  };
   const taskTitle = isExperiment
     ? (taskType === "LD" ? "Task 1" : "Task 2")
     : (taskType === "LD" ? "Lexical Decision Task" : "Prospective Memory Task");
@@ -126,14 +137,17 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
             </p>
 
             {/* Acknowledgment checkbox */}
-            <label className="flex items-start gap-3 cursor-pointer group pt-2 border-t border-violet-200 dark:border-violet-800/50">
+            <label
+              ref={checkboxRef}
+              className="flex items-start gap-4 cursor-pointer group pt-4 border-t border-violet-200 dark:border-violet-800/50 bg-violet-100/50 dark:bg-violet-900/20 -mx-4 px-4 py-4 rounded-lg transition-all duration-300"
+            >
               <input
                 type="checkbox"
                 checked={pmAcknowledged}
                 onChange={(e) => setPmAcknowledged(e.target.checked)}
-                className="mt-0.5 w-5 h-5 rounded border-2 border-violet-400 dark:border-violet-500 text-violet-600 focus:ring-violet-500 focus:ring-2 cursor-pointer accent-violet-600"
+                className="mt-0.5 w-6 h-6 min-w-[1.5rem] rounded border-2 border-violet-400 dark:border-violet-500 text-violet-600 focus:ring-violet-500 focus:ring-2 cursor-pointer accent-violet-600"
               />
-              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed select-none">
+              <span className="text-base text-neutral-700 dark:text-neutral-300 leading-relaxed select-none">
                 I understand that I need to press{" "}
                 <span className="font-semibold text-violet-600 dark:text-violet-400">Q, W, or E</span>{" "}
                 when I see a color word, and that no reminders will be shown during the task.
@@ -325,12 +339,11 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
         {/* Continue button */}
         <div className="text-center pt-2">
           <button
-            onClick={onContinue}
-            disabled={!canContinue}
+            onClick={handleContinueClick}
             className={`px-10 py-4 rounded-full font-semibold transition-all duration-200 text-lg ${
               canContinue
                 ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-200"
-                : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
+                : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400"
             }`}
           >
             Start Practice
