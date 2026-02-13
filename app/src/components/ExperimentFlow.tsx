@@ -289,6 +289,21 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
                 </label>
               </div>
 
+              {/* Static 5:00 timer */}
+              <div className="flex justify-center">
+                <div className="w-48 h-48 relative">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="2"
+                      className="text-neutral-200 dark:text-neutral-800" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-5xl font-light tabular-nums text-neutral-900 dark:text-white">
+                      5:00
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Start Break button */}
               <div className="text-center pt-2">
                 <button
@@ -299,7 +314,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
                       : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400"
                   }`}
                 >
-                  Start Break
+                  Start 5-Minute Break
                 </button>
               </div>
             </div>
