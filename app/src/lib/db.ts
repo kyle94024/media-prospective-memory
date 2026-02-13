@@ -17,6 +17,7 @@ export async function initializeDatabase() {
       participant_id TEXT NOT NULL,
       task_type TEXT NOT NULL CHECK (task_type IN ('LD', 'PM')),
       phase TEXT NOT NULL CHECK (phase IN ('before', 'after')),
+      study_id TEXT,
       started_at BIGINT NOT NULL,
       completed_at BIGINT,
       created_at TIMESTAMP DEFAULT NOW()
@@ -49,8 +50,10 @@ export async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS survey_responses (
       id SERIAL PRIMARY KEY,
       participant_id TEXT NOT NULL,
-      platform TEXT NOT NULL,
-      daily_usage TEXT NOT NULL,
+      study_id TEXT,
+      platform_most_used TEXT,
+      platform_used_during TEXT,
+      daily_usage TEXT,
       condition TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     )

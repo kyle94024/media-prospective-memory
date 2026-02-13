@@ -4,6 +4,7 @@ import { useState } from "react";
 
 interface SurveyProps {
   participantId: string;
+  studyId?: string;
   condition?: string;
   onComplete: () => void;
 }
@@ -41,15 +42,13 @@ const PLATFORMS = [
   },
 ];
 
-export default function Survey({ participantId, condition, onComplete }: SurveyProps) {
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+export default function Survey({ participantId, studyId, condition, onComplete }: SurveyProps) {
+  const [platformMostUsed, setPlatformMostUsed] = useState<string | null>(null);
+  const [platformUsedDuring, setPlatformUsedDuring] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const canSubmit = selectedPlatform && dailyUsage.trim().length > 0;
-
   const handleSubmit = async () => {
-    if (!canSubmit) return;
     setSaving(true);
     try {
       await fetch("/api/survey", {
@@ -57,8 +56,10 @@ export default function Survey({ participantId, condition, onComplete }: SurveyP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participantId,
-          platform: selectedPlatform,
-          dailyUsage: dailyUsage.trim(),
+          studyId: studyId || null,
+          platformMostUsed: platformMostUsed || null,
+          platformUsedDuring: platformUsedDuring || null,
+          dailyUsage: dailyUsage.trim() || null,
           condition: condition || null,
         }),
       });
@@ -69,6 +70,45 @@ export default function Survey({ participantId, condition, onComplete }: SurveyP
       onComplete();
     }
   };
+
+  const renderPlatformGrid = (selected: string | null, onSelect: (id: string) => void) => (
+    <div className="grid grid-cols-3 gap-4">
+      {PLATFORMS.map((platform) => {
+        const isSelected = selected === platform.id;
+        return (
+          <button
+            key={platform.id}
+            onClick={() => onSelect(platform.id)}
+            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all duration-200 ${
+              isSelected
+                ? "border-neutral-900 dark:border-white bg-neutral-50 dark:bg-neutral-800/50 scale-[1.02]"
+                : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/30"
+            }`}
+          >
+            <div
+              className={`transition-colors ${
+                isSelected
+                  ? "text-neutral-900 dark:text-white"
+                  : "text-neutral-400 dark:text-neutral-500"
+              }`}
+              style={isSelected ? { color: platform.color } : undefined}
+            >
+              {platform.logo}
+            </div>
+            <span
+              className={`text-sm font-medium ${
+                isSelected
+                  ? "text-neutral-900 dark:text-white"
+                  : "text-neutral-500 dark:text-neutral-400"
+              }`}
+            >
+              {platform.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
@@ -86,50 +126,23 @@ export default function Survey({ participantId, condition, onComplete }: SurveyP
             </h1>
           </div>
 
-          {/* Platform selection */}
+          {/* Q1: Platform used during break */}
+          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Which platform did you use during the break?
+            </label>
+            {renderPlatformGrid(platformUsedDuring, setPlatformUsedDuring)}
+          </div>
+
+          {/* Q2: Platform most used */}
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
             <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
               Which short-form video platform do you use most?
             </label>
-            <div className="grid grid-cols-3 gap-4">
-              {PLATFORMS.map((platform) => {
-                const isSelected = selectedPlatform === platform.id;
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => setSelectedPlatform(platform.id)}
-                    className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? "border-neutral-900 dark:border-white bg-neutral-50 dark:bg-neutral-800/50 scale-[1.02]"
-                        : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/30"
-                    }`}
-                  >
-                    <div
-                      className={`transition-colors ${
-                        isSelected
-                          ? "text-neutral-900 dark:text-white"
-                          : "text-neutral-400 dark:text-neutral-500"
-                      }`}
-                      style={isSelected ? { color: platform.color } : undefined}
-                    >
-                      {platform.logo}
-                    </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        isSelected
-                          ? "text-neutral-900 dark:text-white"
-                          : "text-neutral-500 dark:text-neutral-400"
-                      }`}
-                    >
-                      {platform.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {renderPlatformGrid(platformMostUsed, setPlatformMostUsed)}
           </div>
 
-          {/* Daily usage */}
+          {/* Q3: Daily usage */}
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
             <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
               How much time do you typically spend on that platform daily?
@@ -150,9 +163,9 @@ export default function Survey({ participantId, condition, onComplete }: SurveyP
           <div className="text-center pt-2">
             <button
               onClick={handleSubmit}
-              disabled={!canSubmit || saving}
+              disabled={saving}
               className={`px-12 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
-                canSubmit && !saving
+                !saving
                   ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
                   : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
               }`}
