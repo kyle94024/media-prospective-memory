@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { TaskType, PM_CUES } from "@/lib/types";
 
 interface InstructionsProps {
@@ -9,6 +10,8 @@ interface InstructionsProps {
 }
 
 export default function Instructions({ taskType, isExperiment = false, onContinue }: InstructionsProps) {
+  const [pmAcknowledged, setPmAcknowledged] = useState(false);
+  const canContinue = taskType !== "PM" || pmAcknowledged;
   const taskTitle = isExperiment
     ? (taskType === "LD" ? "Task 1" : "Task 2")
     : (taskType === "LD" ? "Lexical Decision Task" : "Prospective Memory Task");
@@ -63,9 +66,19 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
 
         {/* PM Instructions */}
         {taskType === "PM" && (
-          <div className="bg-white dark:bg-neutral-900/50 border border-violet-200 dark:border-violet-900/30 rounded-2xl p-9 space-y-7">
+          <div className="bg-violet-50 dark:bg-violet-950/30 border-2 border-violet-400 dark:border-violet-600 rounded-2xl p-9 space-y-7 ring-1 ring-violet-200 dark:ring-violet-800/50">
+            {/* Important banner */}
+            <div className="flex items-center gap-2.5 bg-violet-100 dark:bg-violet-900/40 rounded-lg px-4 py-2.5 -mt-1">
+              <svg className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span className="text-violet-700 dark:text-violet-300 font-semibold text-sm">
+                Important — Read carefully
+              </span>
+            </div>
+
             <div>
-              <h2 className="text-lg font-semibold text-neutral-800 dark:text-white mb-4">
+              <h2 className="text-lg font-semibold text-violet-900 dark:text-violet-200 mb-4">
                 {secondaryHeading}
               </h2>
               <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed text-[15px]">
@@ -84,7 +97,7 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
               {PM_CUES.map((cue) => (
                 <div
                   key={cue.key}
-                  className="flex-1 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-5 text-center border"
+                  className="flex-1 bg-white dark:bg-neutral-800/50 rounded-xl p-5 text-center border"
                   style={{ borderColor: `${cue.color}33` }}
                 >
                   <kbd
@@ -104,10 +117,28 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
               ))}
             </div>
 
-            <p className="text-neutral-500 text-sm leading-relaxed">
+            <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
               These color words will appear occasionally among the regular {isExperiment ? "items" : "stimuli"}.
-              You must remember to press the correct key when you see them.
+              You must remember to press the correct key when you see them.{" "}
+              <span className="text-violet-700 dark:text-violet-300 font-semibold">
+                During the actual task, no reminders will be shown on screen.
+              </span>
             </p>
+
+            {/* Acknowledgment checkbox */}
+            <label className="flex items-start gap-3 cursor-pointer group pt-2 border-t border-violet-200 dark:border-violet-800/50">
+              <input
+                type="checkbox"
+                checked={pmAcknowledged}
+                onChange={(e) => setPmAcknowledged(e.target.checked)}
+                className="mt-0.5 w-5 h-5 rounded border-2 border-violet-400 dark:border-violet-500 text-violet-600 focus:ring-violet-500 focus:ring-2 cursor-pointer accent-violet-600"
+              />
+              <span className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed select-none">
+                I understand that I need to press{" "}
+                <span className="font-semibold text-violet-600 dark:text-violet-400">Q, W, or E</span>{" "}
+                when I see a color word, and that no reminders will be shown during the task.
+              </span>
+            </label>
           </div>
         )}
 
@@ -295,8 +326,12 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
         <div className="text-center pt-2">
           <button
             onClick={onContinue}
-            className="px-10 py-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
-                       hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200 text-lg"
+            disabled={!canContinue}
+            className={`px-10 py-4 rounded-full font-semibold transition-all duration-200 text-lg ${
+              canContinue
+                ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-200"
+                : "bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed"
+            }`}
           >
             Start Practice
           </button>

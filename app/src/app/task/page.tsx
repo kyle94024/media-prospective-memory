@@ -143,11 +143,11 @@ function TaskContent() {
                 "You\u2019ve completed this practice round. Let\u2019s continue to the next step."
               ) : (
                 <>
-                  The main task is the same as practice, but without feedback.
+                  The main task is the same as practice, but without feedback or key reminders.
                   Remember to respond as quickly and accurately as possible.
                   {taskType === "PM" && (
-                    <span className="block mt-3 text-violet-600 dark:text-violet-400 font-medium">
-                      Don&apos;t forget to press the special keys when color words appear!
+                    <span className="block mt-4 px-4 py-3 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded-lg text-violet-700 dark:text-violet-300 font-medium text-sm">
+                      Remember: You still need to press Q, W, or E when you see a color word. No reminders will be shown on screen — you must rely on your memory.
                     </span>
                   )}
                 </>
