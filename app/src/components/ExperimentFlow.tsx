@@ -302,8 +302,8 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
 
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
-          <div className="text-center space-y-12 max-w-md">
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-16">
+          <div className="text-center space-y-10 max-w-lg">
             <div>
               <div className="text-neutral-400 dark:text-neutral-500 text-sm uppercase tracking-widest mb-6">
                 {breakDone ? "Break Complete" : "Break in Progress"}
@@ -312,14 +312,6 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
                 {breakDone ? "Ready to continue?" : "Enjoy your break"}
               </h2>
             </div>
-
-            {!breakDone && condition === "limited" && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-5 py-3 text-sm">
-                <p className="text-amber-800 dark:text-amber-300 font-medium">
-                  Remember: watch each video to completion before scrolling.
-                </p>
-              </div>
-            )}
 
             {/* Timer display */}
             <div className="relative">
@@ -341,6 +333,36 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
                 </div>
               </div>
             </div>
+
+            {/* Break instructions reminder */}
+            {!breakDone && (
+              <div className="bg-gradient-to-b from-sky-50 to-indigo-50 dark:from-sky-950/30 dark:to-indigo-950/30 border border-sky-200 dark:border-sky-800 rounded-2xl p-6 space-y-4 text-left">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-sky-900 dark:text-sky-200">Reminder</span>
+                </div>
+                {condition === "unlimited" ? (
+                  <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                    Please scroll like you usually would at home.
+                    We ask that you do nothing else except watch and scroll during this time.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                      <span className="font-semibold text-amber-700 dark:text-amber-400">Do not scroll to the next video until the video you are watching is completed.</span>{" "}
+                      We ask that you do nothing else except watch and scroll during this time.
+                    </p>
+                    <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-3">
+                      <p className="text-amber-800 dark:text-amber-300 text-xs font-semibold leading-relaxed">
+                        You may only scroll to the next video when you have watched each video in its entirety.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {breakDone && (
               <p className="text-neutral-500 text-base leading-relaxed">
