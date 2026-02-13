@@ -31,7 +31,6 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
   const pid = searchParams.get("pid") || "";
   const existingStudyId = searchParams.get("studyId") || "";
 
-  const [participantId, setParticipantId] = useState(pid);
   const [studyId] = useState(() => existingStudyId || `study-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [timeLeft, setTimeLeft] = useState(BREAK_SECONDS);
   const [breakStarted, setBreakStarted] = useState(false);
@@ -70,7 +69,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
     }
   }, [step, pid, router, basePath, studyId]);
 
-  const encodedPid = encodeURIComponent(participantId.trim() || "anonymous");
+  const encodedPid = encodeURIComponent(pid || "anonymous");
 
   // Step 0: Welcome
   if (step === 0) {
@@ -96,26 +95,6 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
           </div>
 
           <div className="max-w-xl w-full space-y-16">
-            {/* Participant ID */}
-            <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-12 shadow-sm shadow-neutral-900/[0.04] dark:shadow-none">
-              <label className="block text-[13px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-6">
-                Participant ID
-                <span className="text-neutral-400 dark:text-neutral-600 font-normal normal-case tracking-normal ml-2 text-sm lowercase">
-                  (optional)
-                </span>
-              </label>
-              <input
-                type="text"
-                value={participantId}
-                onChange={(e) => setParticipantId(e.target.value)}
-                placeholder="Enter your ID..."
-                className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl px-6 py-5
-                           text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
-                           focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700 focus:bg-white dark:focus:bg-neutral-800/80
-                           transition-all duration-200 text-base"
-              />
-            </div>
-
             {/* Session overview */}
             <div className="bg-white/80 dark:bg-neutral-900/40 border border-neutral-200/70 dark:border-neutral-800/60 rounded-2xl p-12 shadow-sm shadow-neutral-900/[0.03] dark:shadow-none">
               <h3 className="text-[13px] font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-10 flex items-center gap-3">
