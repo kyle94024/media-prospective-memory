@@ -205,6 +205,44 @@ function TaskContent() {
           </div>
         );
       }
+      if (isExperiment) {
+        return (
+          <div className="flex items-center justify-center min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-200">
+            <div className="text-center space-y-8 max-w-lg px-4">
+              <div className="inline-flex items-center gap-2 text-emerald-500 text-sm uppercase tracking-widest">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Section Complete
+              </div>
+              <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
+                Nice work!
+              </h2>
+              <p className="text-neutral-500 text-base">
+                Your responses have been recorded. Let&apos;s continue to the next part.
+              </p>
+              {nextExperimentUrl && (
+                <button
+                  onClick={() => router.push(nextExperimentUrl)}
+                  className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200"
+                >
+                  Continue
+                </button>
+              )}
+              {!nextExperimentUrl && (
+                <button
+                  onClick={() => router.push(homePath)}
+                  className="px-10 py-3.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full font-semibold
+                             hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-200"
+                >
+                  Finish
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
       return (
         <ResultsDisplay results={results} taskType={taskType} phase={phase} isExperiment={isExperiment} homePath={homePath} nextUrl={nextExperimentUrl} />
       );

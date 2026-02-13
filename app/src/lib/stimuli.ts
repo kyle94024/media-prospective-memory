@@ -186,17 +186,24 @@ export function generateTrainingTrials(taskType: "LD" | "PM"): Trial[] {
   const shuffled = shuffle(trials);
 
   if (taskType === "PM") {
-    shuffled.splice(4, 0, {
+    // Insert one of each PM cue color into practice
+    shuffled.splice(3, 0, {
       index: 0,
       stimulus: PM_CUES[0].word,
       type: "pm_cue",
       pmCueKey: PM_CUES[0].key,
     });
-    shuffled.splice(9, 0, {
+    shuffled.splice(7, 0, {
       index: 0,
       stimulus: PM_CUES[1].word,
       type: "pm_cue",
       pmCueKey: PM_CUES[1].key,
+    });
+    shuffled.splice(11, 0, {
+      index: 0,
+      stimulus: PM_CUES[2].word,
+      type: "pm_cue",
+      pmCueKey: PM_CUES[2].key,
     });
   }
 
