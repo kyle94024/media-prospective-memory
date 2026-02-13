@@ -45,7 +45,6 @@ const PLATFORMS = [
 export default function Survey({ participantId, studyId, condition, onComplete }: SurveyProps) {
   const [platformMostUsed, setPlatformMostUsed] = useState<string | null>(null);
   const [platformUsedDuring, setPlatformUsedDuring] = useState<string | null>(null);
-  const [breakUsage, setBreakUsage] = useState("");
   const [dailyUsage, setDailyUsage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +59,6 @@ export default function Survey({ participantId, studyId, condition, onComplete }
           studyId: studyId || null,
           platformMostUsed: platformMostUsed || null,
           platformUsedDuring: platformUsedDuring || null,
-          breakUsage: breakUsage.trim() || null,
           dailyUsage: dailyUsage.trim() || null,
           condition: condition || null,
         }),
@@ -136,24 +134,7 @@ export default function Survey({ participantId, studyId, condition, onComplete }
             {renderPlatformGrid(platformUsedDuring, setPlatformUsedDuring)}
           </div>
 
-          {/* Q2: Time spent during break */}
-          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
-            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-              How much time did you spend on that platform during the break?
-            </label>
-            <input
-              type="text"
-              value={breakUsage}
-              onChange={(e) => setBreakUsage(e.target.value)}
-              placeholder="e.g., 10 minutes, the whole break, etc."
-              className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl px-6 py-4
-                         text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
-                         focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700
-                         transition-all duration-200 text-base"
-            />
-          </div>
-
-          {/* Q3: Platform most used */}
+          {/* Q2: Platform most used */}
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
             <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
               Which short-form video platform do you use most?
@@ -161,10 +142,10 @@ export default function Survey({ participantId, studyId, condition, onComplete }
             {renderPlatformGrid(platformMostUsed, setPlatformMostUsed)}
           </div>
 
-          {/* Q4: Daily usage */}
+          {/* Q3: Daily usage of most-used platform */}
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
             <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-              How much time do you typically spend on that platform daily?
+              How much time do you typically spend on your most-used platform daily?
             </label>
             <input
               type="text"
