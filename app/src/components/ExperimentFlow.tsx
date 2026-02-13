@@ -36,17 +36,26 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
   const [breakDone, setBreakDone] = useState(false);
   const [breakAcknowledged, setBreakAcknowledged] = useState(false);
   const breakCheckboxRef = useRef<HTMLLabelElement>(null);
+  const breakStartTimeRef = useRef<number | null>(null);
 
-  // Break countdown timer — only starts after participant clicks Start Break
+  // Break countdown timer — uses wall-clock time so background tabs don't slow it down
   useEffect(() => {
     if (step !== 4 || !breakStarted) return;
-    if (timeLeft <= 0) {
-      setBreakDone(true);
-      return;
+    if (!breakStartTimeRef.current) {
+      breakStartTimeRef.current = Date.now();
     }
-    const interval = setInterval(() => setTimeLeft((t) => t - 1), 1000);
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - breakStartTimeRef.current!) / 1000);
+      const remaining = Math.max(0, BREAK_SECONDS - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        setBreakDone(true);
+      }
+    };
+    tick(); // run immediately on mount
+    const interval = setInterval(tick, 500); // check every 500ms for snappier updates
     return () => clearInterval(interval);
-  }, [step, timeLeft, breakStarted]);
+  }, [step, breakStarted]);
 
   // Auto-navigate for task steps (1, 2, 3, 5)
   useEffect(() => {
