@@ -55,7 +55,13 @@ export async function initializeDatabase() {
       platform_used_during TEXT,
       daily_usage TEXT,
       condition TEXT,
+      free_response TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     )
+  `;
+
+  // Add free_response column if it doesn't exist (for existing databases)
+  await sql`
+    ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS free_response TEXT
   `;
 }

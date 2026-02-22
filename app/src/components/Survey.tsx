@@ -46,6 +46,7 @@ export default function Survey({ participantId, studyId, condition, onComplete }
   const [platformMostUsed, setPlatformMostUsed] = useState<string | null>(null);
   const [platformUsedDuring, setPlatformUsedDuring] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState("");
+  const [freeResponse, setFreeResponse] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
@@ -61,6 +62,7 @@ export default function Survey({ participantId, studyId, condition, onComplete }
           platformUsedDuring: platformUsedDuring || null,
           dailyUsage: dailyUsage.trim() || null,
           condition: condition || null,
+          freeResponse: freeResponse.trim() || null,
         }),
       });
     } catch (e) {
@@ -156,6 +158,26 @@ export default function Survey({ participantId, studyId, condition, onComplete }
                          text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
                          focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700
                          transition-all duration-200 text-base"
+            />
+          </div>
+
+          {/* Q4: Free response */}
+          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Is there anything else you would like to mention?
+            </label>
+            <p className="text-xs text-neutral-400 dark:text-neutral-500">
+              Optional — any comments about the study, your experience, or anything you noticed.
+            </p>
+            <textarea
+              value={freeResponse}
+              onChange={(e) => setFreeResponse(e.target.value)}
+              placeholder="Type your response here..."
+              rows={4}
+              className="w-full bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl px-6 py-4
+                         text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600
+                         focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700
+                         transition-all duration-200 text-base resize-vertical"
             />
           </div>
 
