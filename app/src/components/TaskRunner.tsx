@@ -86,11 +86,16 @@ export default function TaskRunner({
       setStage("stimulus");
       stimulusStartRef.current = performance.now();
 
+      // PM cues get extra time (4s) since they require recalling the mapping
+      const trial = t[idx];
+      const stimulusDuration = (trial.type === "pm_cue" && taskType === "PM")
+        ? TIMING.STIMULUS_MAX_DURATION * 2
+        : TIMING.STIMULUS_MAX_DURATION;
+
       timerRef.current = setTimeout(() => {
         if (respondedRef.current) return;
         respondedRef.current = true;
 
-        const trial = t[idx];
         const result: TrialResult = {
           sessionId,
           trialIndex: idx,
@@ -116,7 +121,7 @@ export default function TaskRunner({
           setStage("isi");
           timerRef.current = setTimeout(() => showTrial(idx + 1), TIMING.ISI);
         }, 800);
-      }, TIMING.STIMULUS_MAX_DURATION);
+      }, stimulusDuration);
     }, fd);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, taskType, isTraining]);
