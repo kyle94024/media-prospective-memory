@@ -10,6 +10,7 @@ interface RawSession {
   task_type: string;
   phase: string;
   study_id: string | null;
+  condition: string | null;
   started_at: string;
   completed_at: string | null;
   created_at: string;
@@ -280,7 +281,7 @@ export default function AnalysisPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Derived: map study_id → condition (from survey or session naming) ────
+  // ── Derived: map study_id → condition (from survey, for legacy sessions without condition column) ──
 
   const studyConditionMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -292,10 +293,10 @@ export default function AnalysisPage() {
 
   const getConditionForSession = useCallback(
     (s: RawSession): string | null => {
+      // 1. Direct condition column (new sessions)
+      if (s.condition) return s.condition;
+      // 2. Fallback: look up via study_id → survey condition
       if (s.study_id && studyConditionMap[s.study_id]) return studyConditionMap[s.study_id];
-      // Infer from session id patterns
-      if (s.id.includes("experimentA") || s.id.includes("/experimentA")) return "limited";
-      if (s.id.includes("experiment1") || s.id.includes("/experiment1")) return "unlimited";
       return null;
     },
     [studyConditionMap]

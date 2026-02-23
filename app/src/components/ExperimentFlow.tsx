@@ -64,7 +64,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
     if (config) {
       const encodedPid = encodeURIComponent(pid || "anonymous");
       router.replace(
-        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}&expPath=${encodeURIComponent(basePath)}&studyId=${encodeURIComponent(studyId)}${config.extra}`
+        `/task?task=${config.task}&phase=${config.phase}&pid=${encodedPid}&mode=experiment&step=${step}&expPath=${encodeURIComponent(basePath)}&studyId=${encodeURIComponent(studyId)}&condition=${encodeURIComponent(condition)}${config.extra}`
       );
     }
   }, [step, pid, router, basePath, studyId]);

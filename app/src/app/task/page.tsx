@@ -27,6 +27,7 @@ function TaskContent() {
   const trainingOnly = searchParams.get("trainingOnly") === "true";
   const skipTraining = searchParams.get("skipTraining") === "true";
   const studyId = searchParams.get("studyId") || "";
+  const condition = searchParams.get("condition") || "";
 
   const [currentPhase, setCurrentPhase] = useState<TaskPhase>(
     skipTraining ? "main_task" : "instructions"
@@ -49,6 +50,7 @@ function TaskContent() {
             taskType,
             phase,
             studyId: studyId || undefined,
+            condition: condition || undefined,
             startedAt: Date.now(),
           }),
         });
