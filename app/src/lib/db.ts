@@ -18,10 +18,16 @@ export async function initializeDatabase() {
       task_type TEXT NOT NULL CHECK (task_type IN ('LD', 'PM')),
       phase TEXT NOT NULL CHECK (phase IN ('before', 'after')),
       study_id TEXT,
+      condition TEXT,
       started_at BIGINT NOT NULL,
       completed_at BIGINT,
       created_at TIMESTAMP DEFAULT NOW()
     )
+  `;
+
+  // Add condition column if it doesn't exist (for existing databases)
+  await sql`
+    ALTER TABLE sessions ADD COLUMN IF NOT EXISTS condition TEXT
   `;
 
   await sql`
