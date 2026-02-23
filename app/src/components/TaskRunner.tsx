@@ -220,12 +220,17 @@ export default function TaskRunner({
 
           {/* Compact rules reminder — Part A only */}
           {showReadyReminder && (
-            <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 text-left space-y-5">
-              <div className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider text-center">
-                Quick Reminder
+            <div className="bg-white dark:bg-neutral-900/50 border-2 border-rose-300 dark:border-rose-700 rounded-xl p-6 text-left space-y-5">
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider text-center">
+                  No more reminders from here on
+                </div>
               </div>
               <p className="text-neutral-500 dark:text-neutral-400 text-sm text-center leading-relaxed">
-                Key reminders and feedback will <span className="font-semibold text-neutral-700 dark:text-neutral-300">not</span> be shown during this task.
+                You must <span className="font-semibold text-rose-600 dark:text-rose-400">rely on your memory</span> for the color-word cue keys. No hints or feedback will be shown.
               </p>
               <div className={`flex items-start justify-center gap-8 md:gap-14`}>
                 {/* Left hand */}
@@ -349,35 +354,44 @@ export default function TaskRunner({
 
       {/* Key reminders — only shown during practice */}
       {isTraining && (
-        <div className="fixed bottom-10 left-0 right-0">
-          <div className="flex justify-center gap-10 text-neutral-400 dark:text-neutral-600 text-sm">
-            <div className="flex items-center gap-2.5">
-              <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
-                N
-              </kbd>
-              <span>Word</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
-                M
-              </kbd>
-              <span>Non-word</span>
+        <div className="fixed bottom-6 left-0 right-0">
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-center gap-10 text-neutral-400 dark:text-neutral-600 text-sm">
+              <div className="flex items-center gap-2.5">
+                <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                  N
+                </kbd>
+                <span>Word</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <kbd className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md text-neutral-600 dark:text-neutral-400 font-mono text-xs border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                  M
+                </kbd>
+                <span>Non-word</span>
+              </div>
+              {taskType === "PM" && (
+                <>
+                  <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
+                  {PM_CUES.map((cue) => (
+                    <div key={cue.key} className="flex items-center gap-2.5">
+                      <kbd
+                        className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md font-mono text-xs border shadow-sm"
+                        style={{ color: cue.color, borderColor: `${cue.color}40` }}
+                      >
+                        {cue.key.toUpperCase()}
+                      </kbd>
+                      <span style={{ color: cue.color }}>{cue.word}</span>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
             {taskType === "PM" && (
-              <>
-                <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800" />
-                {PM_CUES.map((cue) => (
-                  <div key={cue.key} className="flex items-center gap-2.5">
-                    <kbd
-                      className="px-3 py-1.5 bg-white dark:bg-neutral-800 rounded-md font-mono text-xs border shadow-sm"
-                      style={{ color: cue.color, borderColor: `${cue.color}40` }}
-                    >
-                      {cue.key.toUpperCase()}
-                    </kbd>
-                    <span style={{ color: cue.color }}>{cue.word}</span>
-                  </div>
-                ))}
-              </>
+              <div className="px-4 py-2 rounded-lg border-2 border-dashed border-rose-400 dark:border-rose-500 bg-rose-50 dark:bg-rose-950/30">
+                <span className="text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                  Memorize these cues — they will NOT be shown during the actual task
+                </span>
+              </div>
             )}
           </div>
         </div>
