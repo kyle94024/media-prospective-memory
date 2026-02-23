@@ -25,10 +25,9 @@ export async function initializeDatabase() {
     )
   `;
 
-  // Add condition column if it doesn't exist (for existing databases)
-  await sql`
-    ALTER TABLE sessions ADD COLUMN IF NOT EXISTS condition TEXT
-  `;
+  // Add columns that may not exist on older versions of the tables
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS study_id TEXT`;
+  await sql`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS condition TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS trials (
@@ -66,8 +65,7 @@ export async function initializeDatabase() {
     )
   `;
 
-  // Add free_response column if it doesn't exist (for existing databases)
-  await sql`
-    ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS free_response TEXT
-  `;
+  // Add columns that may not exist on older versions of the tables
+  await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS condition TEXT`;
+  await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS free_response TEXT`;
 }
