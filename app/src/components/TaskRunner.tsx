@@ -234,7 +234,7 @@ export default function TaskRunner({
                     Left Hand
                   </div>
                   <div className="flex gap-1.5">
-                    {PM_CUES.slice().reverse().map((cue) => (
+                    {PM_CUES.map((cue) => (
                       <div
                         key={cue.key}
                         className="w-10 h-10 rounded-lg border-2 flex items-center justify-center font-mono text-sm font-bold shadow-sm"
