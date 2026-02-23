@@ -173,9 +173,9 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
                   {/* Finger labels */}
                   <div className="flex gap-1.5 w-full">
                     {[
-                      { finger: "Index", color: PM_CUES[0].color },
+                      { finger: "Ring", color: PM_CUES[0].color },
                       { finger: "Mid", color: PM_CUES[1].color },
-                      { finger: "Ring", color: PM_CUES[2].color },
+                      { finger: "Index", color: PM_CUES[2].color },
                     ].map((f) => (
                       <div key={f.finger} className="flex-1 text-center">
                         <div className="text-[10px] font-medium" style={{ color: f.color }}>{f.finger}</div>
