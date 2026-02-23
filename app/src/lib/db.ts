@@ -68,4 +68,5 @@ export async function initializeDatabase() {
   // Add columns that may not exist on older versions of the tables
   await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS condition TEXT`;
   await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS free_response TEXT`;
+  await sql`ALTER TABLE survey_responses ADD COLUMN IF NOT EXISTS handedness TEXT`;
 }
