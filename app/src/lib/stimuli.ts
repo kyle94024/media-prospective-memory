@@ -102,10 +102,10 @@ function pickRandom<T>(array: T[]): T {
 
 /**
  * Generate the sequence of trials for a task block.
- * For LD: 160 LD trials (80 word + 80 nonword)
- * For PM: 160 LD trials + 16 PM trials interspersed
- *   - At least 10 LD trials before first PM cue
- *   - At least 8 LD trials between each PM cue
+ * For LD: 50 LD trials (25 word + 25 nonword)
+ * For PM: 50 LD trials + 12 PM cues (shuffled) interspersed
+ *   - At least MIN_LD_BEFORE_FIRST_PM LD trials before first PM cue
+ *   - At least MIN_LD_BETWEEN_PM LD trials between each PM cue
  */
 export function generateTrials(
   taskType: "LD" | "PM",
@@ -128,7 +128,7 @@ export function generateTrials(
     return shuffledLD.map((t, i) => ({ ...t, index: i }));
   }
 
-  // PM task: Insert 16 PM trials into the LD trial sequence
+  // PM task: create PM trials and shuffle their order
   const pmTrials: Trial[] = [];
   for (let i = 0; i < TIMING.PM_TRIALS_PER_BLOCK; i++) {
     const cue = PM_CUES[i % PM_CUES.length];
@@ -139,35 +139,33 @@ export function generateTrials(
       pmCueKey: cue.key,
     });
   }
+  const shuffledPM = shuffle(pmTrials);
 
-  // Insert PM trials respecting spacing constraints
+  // Compute LD-trial gaps between PM cues using minimum spacing + random slack
+  // gaps[0] = LD before first PM, gaps[1..n-1] = LD between PMs, gaps[n] = LD after last PM
+  const numPM = shuffledPM.length;
+  const numLD = shuffledLD.length;
+  const numGaps = numPM + 1;
+  const gaps = new Array(numGaps).fill(0);
+  gaps[0] = TIMING.MIN_LD_BEFORE_FIRST_PM;
+  for (let i = 1; i < numPM; i++) gaps[i] = TIMING.MIN_LD_BETWEEN_PM;
+  // Distribute remaining LD trials randomly across all gaps
+  const slack = numLD - gaps.reduce((a, b) => a + b, 0);
+  for (let s = 0; s < slack; s++) {
+    gaps[Math.floor(Math.random() * numGaps)]++;
+  }
+
+  // Build combined sequence: LD gap, PM, LD gap, PM, ... LD gap
   const combined: Trial[] = [];
-  let pmIdx = 0;
   let ldIdx = 0;
-  let sinceLastPM = 0;
-  let firstPM = false;
-
-  while (ldIdx < shuffledLD.length || pmIdx < pmTrials.length) {
-    const canInsert = pmIdx < pmTrials.length && (
-      (!firstPM && sinceLastPM >= TIMING.MIN_LD_BEFORE_FIRST_PM) ||
-      (firstPM && sinceLastPM >= TIMING.MIN_LD_BETWEEN_PM)
-    );
-
-    const remainingPM = pmTrials.length - pmIdx;
-    const remainingLD = shuffledLD.length - ldIdx;
-    const ldNeeded = remainingPM > 1 ? (remainingPM - 1) * TIMING.MIN_LD_BETWEEN_PM : 0;
-    const mustInsert = canInsert && remainingLD <= ldNeeded;
-
-    if (mustInsert || (canInsert && Math.random() < 0.3)) {
-      combined.push(pmTrials[pmIdx++]);
-      sinceLastPM = 0;
-      firstPM = true;
-    } else if (ldIdx < shuffledLD.length) {
-      combined.push(shuffledLD[ldIdx++]);
-      sinceLastPM++;
-    } else if (pmIdx < pmTrials.length) {
-      combined.push(pmTrials[pmIdx++]);
+  for (let i = 0; i < numPM; i++) {
+    for (let j = 0; j < gaps[i]; j++) {
+      if (ldIdx < numLD) combined.push(shuffledLD[ldIdx++]);
     }
+    combined.push(shuffledPM[i]);
+  }
+  while (ldIdx < numLD) {
+    combined.push(shuffledLD[ldIdx++]);
   }
 
   return combined.map((t, i) => ({ ...t, index: i }));
