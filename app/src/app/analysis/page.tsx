@@ -125,44 +125,89 @@ function BarChart({
   unit?: string;
   height?: number;
 }) {
-  const max = maxVal ?? Math.max(...bars.map((b) => b.ci ? b.ci[1] : b.value), 1) * 1.15;
+  const allVals = bars.flatMap((b) => b.ci ? [b.ci[0], b.ci[1], b.value] : [b.value]);
+  const minV = Math.min(...allVals, 0);
+  const maxV = maxVal ?? Math.max(...allVals, 1);
+  const hasNegative = minV < 0;
+
+  // For negative-capable charts, split height into positive and negative portions
+  const range = (maxV - minV) * 1.15 || 1;
+  const posRatio = hasNegative ? Math.max(maxV, 0) / range : 1;
+  const posH = hasNegative ? height * posRatio : height;
+  const negH = hasNegative ? height - posH : 0;
+
+  const scale = (v: number) => hasNegative ? (v / range) * height : (v / (maxV * 1.15 || 1)) * height;
+
   return (
-    <div className="flex items-end gap-6 justify-center" style={{ height }}>
-      {bars.map((bar, i) => {
-        const barH = (bar.value / max) * height;
-        const ciLow = bar.ci ? (bar.ci[0] / max) * height : barH;
-        const ciHigh = bar.ci ? (bar.ci[1] / max) * height : barH;
-        return (
-          <div key={i} className="flex flex-col items-center gap-1" style={{ minWidth: 80 }}>
-            <div className="text-xs text-neutral-500 font-mono tabular-nums">
-              {bar.value.toFixed(unit === "%" ? 1 : 0)}{unit || ""}
-            </div>
-            <div className="relative flex items-end" style={{ height }}>
-              {/* CI whisker */}
-              {bar.ci && (
+    <div className="flex flex-col items-center">
+      <div className="flex items-end gap-6 justify-center" style={{ height: posH || height }}>
+        {bars.map((bar, i) => {
+          const isPos = bar.value >= 0;
+          const barH = isPos ? scale(bar.value) : 0;
+          return (
+            <div key={i} className="flex flex-col items-center gap-1" style={{ minWidth: 80 }}>
+              <div className="text-xs text-neutral-500 font-mono tabular-nums">
+                {bar.value.toFixed(unit === "%" ? 1 : 0)}{unit || ""}
+              </div>
+              <div className="relative flex items-end" style={{ height: posH || height }}>
+                {/* CI whisker (positive part) */}
+                {bar.ci && isPos && (() => {
+                  const ciLow = scale(Math.max(bar.ci[0], 0));
+                  const ciHigh = scale(Math.max(bar.ci[1], 0));
+                  return (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 w-px bg-neutral-400 dark:bg-neutral-500"
+                      style={{ bottom: ciLow, height: Math.max(ciHigh - ciLow, 0) }}
+                    >
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-px bg-neutral-400 dark:bg-neutral-500" />
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-px bg-neutral-400 dark:bg-neutral-500" />
+                    </div>
+                  );
+                })()}
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 w-px bg-neutral-400 dark:bg-neutral-500"
-                  style={{ bottom: ciLow, height: ciHigh - ciLow }}
-                >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-px bg-neutral-400 dark:bg-neutral-500" />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-px bg-neutral-400 dark:bg-neutral-500" />
-                </div>
-              )}
-              {/* Bar */}
-              <div
-                className="w-16 rounded-t-lg transition-all duration-500"
-                style={{ height: Math.max(barH, 2), backgroundColor: bar.color }}
-              />
+                  className="w-16 rounded-t-lg transition-all duration-500"
+                  style={{ height: Math.max(barH, isPos ? 2 : 0), backgroundColor: isPos ? bar.color : "transparent" }}
+                />
+              </div>
             </div>
-            <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 text-center mt-1">
+          );
+        })}
+      </div>
+      {/* Zero line and negative bars */}
+      {hasNegative && (
+        <>
+          <div className="w-full border-t border-neutral-300 dark:border-neutral-600" />
+          <div className="flex items-start gap-6 justify-center" style={{ height: negH }}>
+            {bars.map((bar, i) => {
+              const isNeg = bar.value < 0;
+              const barH = isNeg ? scale(Math.abs(bar.value)) : 0;
+              return (
+                <div key={i} className="flex flex-col items-center" style={{ minWidth: 80 }}>
+                  <div className="relative flex items-start" style={{ height: negH }}>
+                    <div
+                      className="w-16 rounded-b-lg transition-all duration-500"
+                      style={{ height: Math.max(barH, isNeg ? 2 : 0), backgroundColor: isNeg ? bar.color : "transparent", opacity: isNeg ? 0.7 : 0 }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {/* Labels below */}
+      <div className="flex gap-6 justify-center mt-1">
+        {bars.map((bar, i) => (
+          <div key={i} className="flex flex-col items-center" style={{ minWidth: 80 }}>
+            <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 text-center">
               {bar.label}
             </div>
             {bar.n !== undefined && (
               <div className="text-[10px] text-neutral-400">n={bar.n}</div>
             )}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
@@ -351,43 +396,6 @@ export default function AnalysisPage() {
 
   // ── Per-condition trial data ───────────────────────────────────────────────
 
-  const trialsByCondition = useMemo(() => {
-    const sessionCondMap: Record<string, string> = {};
-    for (const s of sessions) {
-      const cond = getConditionForSession(s);
-      if (cond) sessionCondMap[s.id] = cond;
-    }
-
-    const limited: RawTrial[] = [];
-    const unlimited: RawTrial[] = [];
-    for (const t of filteredTrials) {
-      const cond = sessionCondMap[t.session_id];
-      if (cond === "limited") limited.push(t);
-      else if (cond === "unlimited") unlimited.push(t);
-    }
-    return { limited, unlimited };
-  }, [sessions, filteredTrials, getConditionForSession]);
-
-  // ── Per-phase trial data within each condition ─────────────────────────────
-
-  const trialsByConditionPhase = useMemo(() => {
-    const sessionInfoMap: Record<string, { condition: string | null; phase: string }> = {};
-    for (const s of sessions) {
-      sessionInfoMap[s.id] = { condition: getConditionForSession(s), phase: s.phase };
-    }
-    const result: Record<string, Record<string, RawTrial[]>> = {
-      limited: { before: [], after: [] },
-      unlimited: { before: [], after: [] },
-    };
-    for (const t of filteredTrials) {
-      const info = sessionInfoMap[t.session_id];
-      if (info?.condition && result[info.condition]) {
-        result[info.condition][info.phase]?.push(t);
-      }
-    }
-    return result;
-  }, [sessions, filteredTrials, getConditionForSession]);
-
   // ── Helper: extract RTs from trials ────────────────────────────────────────
 
   const getRTs = (trials: RawTrial[]) =>
@@ -397,9 +405,6 @@ export default function AnalysisPage() {
     if (trials.length === 0) return 0;
     return (trials.filter((t) => t.correct).length / trials.length) * 100;
   };
-
-  const getAccuracyArr = (trials: RawTrial[]) =>
-    trials.map((t) => (t.correct ? 100 : 0));
 
   // ── Per-participant aggregation for proper between-subjects CI ──────────────
 
@@ -416,10 +421,43 @@ export default function AnalysisPage() {
       participantSessions[s.study_id].sessions.push(s);
     }
 
-    // For each participant, compute their mean RT and accuracy
-    const result: Record<string, { rt: number[]; acc: number[]; rtBefore: number[]; rtAfter: number[]; accBefore: number[]; accAfter: number[]; pmAcc: number[]; ldAcc: number[] }> = {
-      limited: { rt: [], acc: [], rtBefore: [], rtAfter: [], accBefore: [], accAfter: [], pmAcc: [], ldAcc: [] },
-      unlimited: { rt: [], acc: [], rtBefore: [], rtAfter: [], accBefore: [], accAfter: [], pmAcc: [], ldAcc: [] },
+    interface ConditionStats {
+      // Overall
+      rt: number[]; acc: number[];
+      // By phase
+      rtBefore: number[]; rtAfter: number[];
+      accBefore: number[]; accAfter: number[];
+      // Deltas (After − Before) per participant
+      rtDelta: number[]; accDelta: number[];
+      // LD-specific (words + nonwords)
+      ldRtBefore: number[]; ldRtAfter: number[];
+      ldAccBefore: number[]; ldAccAfter: number[];
+      ldRtDelta: number[]; ldAccDelta: number[];
+      // PM-specific (pm_cue trials)
+      pmAccBefore: number[]; pmAccAfter: number[];
+      pmRtBefore: number[]; pmRtAfter: number[];
+      pmAccDelta: number[]; pmRtDelta: number[];
+      // Combined
+      pmAcc: number[]; ldAcc: number[];
+    }
+
+    const empty = (): ConditionStats => ({
+      rt: [], acc: [],
+      rtBefore: [], rtAfter: [],
+      accBefore: [], accAfter: [],
+      rtDelta: [], accDelta: [],
+      ldRtBefore: [], ldRtAfter: [],
+      ldAccBefore: [], ldAccAfter: [],
+      ldRtDelta: [], ldAccDelta: [],
+      pmAccBefore: [], pmAccAfter: [],
+      pmRtBefore: [], pmRtAfter: [],
+      pmAccDelta: [], pmRtDelta: [],
+      pmAcc: [], ldAcc: [],
+    });
+
+    const result: Record<string, ConditionStats> = {
+      limited: empty(),
+      unlimited: empty(),
     };
 
     for (const [studyId, { condition }] of Object.entries(participantSessions)) {
@@ -434,7 +472,7 @@ export default function AnalysisPage() {
       if (rts.length > 0) result[condition].rt.push(mean(rts));
       result[condition].acc.push(acc);
 
-      // By phase
+      // Split by phase
       const beforeTrials = pTrials.filter((t) => {
         const sess = pSessions.find((s) => s.id === t.session_id);
         return sess?.phase === "before";
@@ -443,6 +481,8 @@ export default function AnalysisPage() {
         const sess = pSessions.find((s) => s.id === t.session_id);
         return sess?.phase === "after";
       });
+
+      // Overall RT & accuracy by phase
       const rtsB = getRTs(beforeTrials);
       const rtsA = getRTs(afterTrials);
       if (rtsB.length > 0) result[condition].rtBefore.push(mean(rtsB));
@@ -450,7 +490,35 @@ export default function AnalysisPage() {
       if (beforeTrials.length > 0) result[condition].accBefore.push(getAccuracy(beforeTrials));
       if (afterTrials.length > 0) result[condition].accAfter.push(getAccuracy(afterTrials));
 
-      // PM vs LD
+      // Deltas (overall)
+      if (rtsB.length > 0 && rtsA.length > 0) result[condition].rtDelta.push(mean(rtsA) - mean(rtsB));
+      if (beforeTrials.length > 0 && afterTrials.length > 0) result[condition].accDelta.push(getAccuracy(afterTrials) - getAccuracy(beforeTrials));
+
+      // LD trials (word + nonword) by phase
+      const ldBefore = beforeTrials.filter((t) => t.stimulus_type !== "pm_cue");
+      const ldAfter = afterTrials.filter((t) => t.stimulus_type !== "pm_cue");
+      const ldRtsB = getRTs(ldBefore);
+      const ldRtsA = getRTs(ldAfter);
+      if (ldRtsB.length > 0) result[condition].ldRtBefore.push(mean(ldRtsB));
+      if (ldRtsA.length > 0) result[condition].ldRtAfter.push(mean(ldRtsA));
+      if (ldBefore.length > 0) result[condition].ldAccBefore.push(getAccuracy(ldBefore));
+      if (ldAfter.length > 0) result[condition].ldAccAfter.push(getAccuracy(ldAfter));
+      if (ldRtsB.length > 0 && ldRtsA.length > 0) result[condition].ldRtDelta.push(mean(ldRtsA) - mean(ldRtsB));
+      if (ldBefore.length > 0 && ldAfter.length > 0) result[condition].ldAccDelta.push(getAccuracy(ldAfter) - getAccuracy(ldBefore));
+
+      // PM trials by phase
+      const pmBefore = beforeTrials.filter((t) => t.stimulus_type === "pm_cue");
+      const pmAfter = afterTrials.filter((t) => t.stimulus_type === "pm_cue");
+      const pmRtsB = getRTs(pmBefore);
+      const pmRtsA = getRTs(pmAfter);
+      if (pmBefore.length > 0) result[condition].pmAccBefore.push(getAccuracy(pmBefore));
+      if (pmAfter.length > 0) result[condition].pmAccAfter.push(getAccuracy(pmAfter));
+      if (pmRtsB.length > 0) result[condition].pmRtBefore.push(mean(pmRtsB));
+      if (pmRtsA.length > 0) result[condition].pmRtAfter.push(mean(pmRtsA));
+      if (pmBefore.length > 0 && pmAfter.length > 0) result[condition].pmAccDelta.push(getAccuracy(pmAfter) - getAccuracy(pmBefore));
+      if (pmRtsB.length > 0 && pmRtsA.length > 0) result[condition].pmRtDelta.push(mean(pmRtsA) - mean(pmRtsB));
+
+      // Combined PM vs LD
       const pmTrials = pTrials.filter((t) => t.stimulus_type === "pm_cue");
       const ldTrials = pTrials.filter((t) => t.stimulus_type !== "pm_cue");
       if (pmTrials.length > 0) result[condition].pmAcc.push(getAccuracy(pmTrials));
@@ -572,15 +640,7 @@ export default function AnalysisPage() {
     );
   }
 
-  const limitedRTs = getRTs(trialsByCondition.limited);
-  const unlimitedRTs = getRTs(trialsByCondition.unlimited);
-  const limitedAcc = getAccuracyArr(trialsByCondition.limited);
-  const unlimitedAcc = getAccuracyArr(trialsByCondition.unlimited);
-
-  const rtTest = welchTTest(limitedRTs, unlimitedRTs);
-  const rtD = cohensD(limitedRTs, unlimitedRTs);
-  const accTest = welchTTest(limitedAcc, unlimitedAcc);
-  const accD = cohensD(limitedAcc, unlimitedAcc);
+  // (per-participant stats computed above in useMemo)
 
   const BLUE = "#3B82F6";
   const AMBER = "#F59E0B";
@@ -594,6 +654,17 @@ export default function AnalysisPage() {
   const platformColor = (id: string) =>
     id === "youtube-shorts" ? "#FF0000" : id === "instagram" ? "#E1306C" : "#000000";
 
+  // Helper for descriptive stats table cells
+  const fmtMSD = (arr: number[], unit: string = "") => {
+    if (arr.length === 0) return "—";
+    const m = mean(arr);
+    const s = stddev(arr);
+    if (unit === "%") return `${m.toFixed(1)}% (${s.toFixed(1)})`;
+    return `${m.toFixed(0)}${unit} (${s.toFixed(0)})`;
+  };
+
+  const fmtN = (arr: number[]) => arr.length;
+
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white transition-colors duration-300">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-100 via-neutral-50 to-white dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-950" />
@@ -605,6 +676,9 @@ export default function AnalysisPage() {
             Research Analysis
           </div>
           <h1 className="text-3xl font-light">Experiment Data Analysis</h1>
+          <p className="text-sm text-neutral-500 max-w-2xl">
+            Based on Barton &amp; Smyth (2025). Two conditions vary the pace of context-switching during a short-form video break. Performance on a combined Lexical Decision (LD) + Prospective Memory (PM) task is measured before and after the break.
+          </p>
           <div className="flex flex-wrap gap-4 text-sm text-neutral-500">
             <span>Exp A (/experimentA) = <strong className="text-amber-600 dark:text-amber-400">Limited</strong> (must watch full video)</span>
             <span className="text-neutral-300 dark:text-neutral-700">|</span>
@@ -705,290 +779,316 @@ export default function AnalysisPage() {
           <StatCard label="Survey Responses" value={filteredSurveys.length.toString()} />
         </div>
 
-        {/* ── Condition Comparison: Reaction Time ─────────────────────────────── */}
+        {/* ── Descriptive Statistics Table ──────────────────────────────────── */}
         <Section
-          title="Reaction Time: Limited (A) vs Unlimited (1)"
-          subtitle="Mean RT of correct trials with 95% confidence intervals. CI computed per-participant then across participants."
+          title="Descriptive Statistics"
+          subtitle="Per-participant means (SD) for each measure by condition and phase. Delta = After − Before."
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="flex justify-center">
-              <BarChart
-                bars={[
-                  {
-                    label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.rt),
-                    ci: perParticipantStats.limited.rt.length >= 2 ? ci95(perParticipantStats.limited.rt) : undefined,
-                    color: AMBER,
-                    n: perParticipantStats.limited.rt.length,
-                  },
-                  {
-                    label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.rt),
-                    ci: perParticipantStats.unlimited.rt.length >= 2 ? ci95(perParticipantStats.unlimited.rt) : undefined,
-                    color: BLUE,
-                    n: perParticipantStats.unlimited.rt.length,
-                  },
-                ]}
-                unit=" ms"
-                height={220}
-              />
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-neutral-400 uppercase tracking-wider">Limited (A)</div>
-                  <div className="font-mono">{fmtMs(mean(limitedRTs))} <span className="text-neutral-400">(SD {fmtMs(stddev(limitedRTs))})</span></div>
-                  <div className="text-xs text-neutral-500">n = {limitedRTs.length} trials</div>
-                </div>
-                <div>
-                  <div className="text-xs text-neutral-400 uppercase tracking-wider">Unlimited (1)</div>
-                  <div className="font-mono">{fmtMs(mean(unlimitedRTs))} <span className="text-neutral-400">(SD {fmtMs(stddev(unlimitedRTs))})</span></div>
-                  <div className="text-xs text-neutral-500">n = {unlimitedRTs.length} trials</div>
-                </div>
-              </div>
-              <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3 space-y-1">
-                <div className="font-mono text-xs">
-                  Welch&apos;s t({rtTest.df.toFixed(1)}) = {rtTest.t.toFixed(3)}, p = {rtTest.p < 0.001 ? "< .001" : rtTest.p.toFixed(3)}
-                  {rtTest.p < 0.05 && <span className="text-emerald-500 ml-2">*</span>}
-                </div>
-                <div className="font-mono text-xs">Cohen&apos;s d = {rtD.toFixed(3)}</div>
-              </div>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-neutral-300 dark:border-neutral-700">
+                  <th className="text-left py-3 pr-4 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Measure</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-neutral-200 dark:border-neutral-700" colSpan={4}>Limited (A)</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 border-b border-neutral-200 dark:border-neutral-700" colSpan={4}>Unlimited (1)</th>
+                </tr>
+                <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">Before</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">After</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase font-bold">Delta</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">n</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">Before</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">After</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase font-bold">Delta</th>
+                  <th className="text-center px-3 py-2 text-[10px] text-neutral-400 uppercase">n</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-xs">
+                {[
+                  { label: "LD Accuracy (%)", bL: perParticipantStats.limited.ldAccBefore, aL: perParticipantStats.limited.ldAccAfter, dL: perParticipantStats.limited.ldAccDelta, bU: perParticipantStats.unlimited.ldAccBefore, aU: perParticipantStats.unlimited.ldAccAfter, dU: perParticipantStats.unlimited.ldAccDelta, unit: "%" },
+                  { label: "LD RT (ms)", bL: perParticipantStats.limited.ldRtBefore, aL: perParticipantStats.limited.ldRtAfter, dL: perParticipantStats.limited.ldRtDelta, bU: perParticipantStats.unlimited.ldRtBefore, aU: perParticipantStats.unlimited.ldRtAfter, dU: perParticipantStats.unlimited.ldRtDelta, unit: " ms" },
+                  { label: "PM Accuracy (%)", bL: perParticipantStats.limited.pmAccBefore, aL: perParticipantStats.limited.pmAccAfter, dL: perParticipantStats.limited.pmAccDelta, bU: perParticipantStats.unlimited.pmAccBefore, aU: perParticipantStats.unlimited.pmAccAfter, dU: perParticipantStats.unlimited.pmAccDelta, unit: "%" },
+                  { label: "PM RT (ms)", bL: perParticipantStats.limited.pmRtBefore, aL: perParticipantStats.limited.pmRtAfter, dL: perParticipantStats.limited.pmRtDelta, bU: perParticipantStats.unlimited.pmRtBefore, aU: perParticipantStats.unlimited.pmRtAfter, dU: perParticipantStats.unlimited.pmRtDelta, unit: " ms" },
+                  { label: "Overall Accuracy (%)", bL: perParticipantStats.limited.accBefore, aL: perParticipantStats.limited.accAfter, dL: perParticipantStats.limited.accDelta, bU: perParticipantStats.unlimited.accBefore, aU: perParticipantStats.unlimited.accAfter, dU: perParticipantStats.unlimited.accDelta, unit: "%" },
+                  { label: "Overall RT (ms)", bL: perParticipantStats.limited.rtBefore, aL: perParticipantStats.limited.rtAfter, dL: perParticipantStats.limited.rtDelta, bU: perParticipantStats.unlimited.rtBefore, aU: perParticipantStats.unlimited.rtAfter, dU: perParticipantStats.unlimited.rtDelta, unit: " ms" },
+                ].map((row) => (
+                  <tr key={row.label} className="border-b border-neutral-100 dark:border-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800/20">
+                    <td className="py-2.5 pr-4 text-xs font-sans font-medium text-neutral-700 dark:text-neutral-300">{row.label}</td>
+                    <td className="text-center px-3 py-2.5">{fmtMSD(row.bL, row.unit)}</td>
+                    <td className="text-center px-3 py-2.5">{fmtMSD(row.aL, row.unit)}</td>
+                    <td className={`text-center px-3 py-2.5 font-semibold ${row.dL.length > 0 && mean(row.dL) < 0 ? "text-rose-600 dark:text-rose-400" : row.dL.length > 0 && mean(row.dL) > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                      {fmtMSD(row.dL, row.unit)}
+                    </td>
+                    <td className="text-center px-3 py-2.5 text-neutral-400">{fmtN(row.dL)}</td>
+                    <td className="text-center px-3 py-2.5">{fmtMSD(row.bU, row.unit)}</td>
+                    <td className="text-center px-3 py-2.5">{fmtMSD(row.aU, row.unit)}</td>
+                    <td className={`text-center px-3 py-2.5 font-semibold ${row.dU.length > 0 && mean(row.dU) < 0 ? "text-rose-600 dark:text-rose-400" : row.dU.length > 0 && mean(row.dU) > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                      {fmtMSD(row.dU, row.unit)}
+                    </td>
+                    <td className="text-center px-3 py-2.5 text-neutral-400">{fmtN(row.dU)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Section>
 
-        {/* ── Condition Comparison: Accuracy ───────────────────────────────────── */}
+        {/* ── Change Scores (Deltas): Bar Charts ─────────────────────────────── */}
         <Section
-          title="Accuracy: Limited (A) vs Unlimited (1)"
-          subtitle="Overall accuracy with 95% confidence intervals."
+          title="Change Scores (After − Before)"
+          subtitle="Per-participant delta scores by condition. Negative accuracy deltas = decline after break. Positive RT deltas = slower after break."
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="flex justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* LD Accuracy Delta */}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">LD Accuracy Change</h3>
               <BarChart
                 bars={[
                   {
                     label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.acc),
-                    ci: perParticipantStats.limited.acc.length >= 2 ? ci95(perParticipantStats.limited.acc) : undefined,
+                    value: mean(perParticipantStats.limited.ldAccDelta),
+                    ci: perParticipantStats.limited.ldAccDelta.length >= 2 ? ci95(perParticipantStats.limited.ldAccDelta) : undefined,
                     color: AMBER,
-                    n: perParticipantStats.limited.acc.length,
+                    n: perParticipantStats.limited.ldAccDelta.length,
                   },
                   {
                     label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.acc),
-                    ci: perParticipantStats.unlimited.acc.length >= 2 ? ci95(perParticipantStats.unlimited.acc) : undefined,
+                    value: mean(perParticipantStats.unlimited.ldAccDelta),
+                    ci: perParticipantStats.unlimited.ldAccDelta.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccDelta) : undefined,
                     color: BLUE,
-                    n: perParticipantStats.unlimited.acc.length,
+                    n: perParticipantStats.unlimited.ldAccDelta.length,
                   },
                 ]}
                 unit="%"
-                height={220}
-                maxVal={105}
+                height={180}
+              />
+              {(() => {
+                const t = welchTTest(perParticipantStats.limited.ldAccDelta, perParticipantStats.unlimited.ldAccDelta);
+                const d = cohensD(perParticipantStats.limited.ldAccDelta, perParticipantStats.unlimited.ldAccDelta);
+                return (
+                  <div className="mt-3 text-center space-y-0.5">
+                    <div className="font-mono text-[10px] text-neutral-500">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
+                    <div className="font-mono text-[10px] text-neutral-500">d = {d.toFixed(3)}</div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* LD RT Delta */}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">LD RT Change</h3>
+              <BarChart
+                bars={[
+                  {
+                    label: "Limited (A)",
+                    value: mean(perParticipantStats.limited.ldRtDelta),
+                    ci: perParticipantStats.limited.ldRtDelta.length >= 2 ? ci95(perParticipantStats.limited.ldRtDelta) : undefined,
+                    color: AMBER,
+                    n: perParticipantStats.limited.ldRtDelta.length,
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    value: mean(perParticipantStats.unlimited.ldRtDelta),
+                    ci: perParticipantStats.unlimited.ldRtDelta.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtDelta) : undefined,
+                    color: BLUE,
+                    n: perParticipantStats.unlimited.ldRtDelta.length,
+                  },
+                ]}
+                unit=" ms"
+                height={180}
+              />
+              {(() => {
+                const t = welchTTest(perParticipantStats.limited.ldRtDelta, perParticipantStats.unlimited.ldRtDelta);
+                const d = cohensD(perParticipantStats.limited.ldRtDelta, perParticipantStats.unlimited.ldRtDelta);
+                return (
+                  <div className="mt-3 text-center space-y-0.5">
+                    <div className="font-mono text-[10px] text-neutral-500">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
+                    <div className="font-mono text-[10px] text-neutral-500">d = {d.toFixed(3)}</div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* PM Accuracy Delta */}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">PM Accuracy Change</h3>
+              <BarChart
+                bars={[
+                  {
+                    label: "Limited (A)",
+                    value: mean(perParticipantStats.limited.pmAccDelta),
+                    ci: perParticipantStats.limited.pmAccDelta.length >= 2 ? ci95(perParticipantStats.limited.pmAccDelta) : undefined,
+                    color: AMBER,
+                    n: perParticipantStats.limited.pmAccDelta.length,
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    value: mean(perParticipantStats.unlimited.pmAccDelta),
+                    ci: perParticipantStats.unlimited.pmAccDelta.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccDelta) : undefined,
+                    color: BLUE,
+                    n: perParticipantStats.unlimited.pmAccDelta.length,
+                  },
+                ]}
+                unit="%"
+                height={180}
+              />
+              {(() => {
+                const t = welchTTest(perParticipantStats.limited.pmAccDelta, perParticipantStats.unlimited.pmAccDelta);
+                const d = cohensD(perParticipantStats.limited.pmAccDelta, perParticipantStats.unlimited.pmAccDelta);
+                return (
+                  <div className="mt-3 text-center space-y-0.5">
+                    <div className="font-mono text-[10px] text-neutral-500">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
+                    <div className="font-mono text-[10px] text-neutral-500">d = {d.toFixed(3)}</div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* PM RT Delta */}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">PM RT Change</h3>
+              <BarChart
+                bars={[
+                  {
+                    label: "Limited (A)",
+                    value: mean(perParticipantStats.limited.pmRtDelta),
+                    ci: perParticipantStats.limited.pmRtDelta.length >= 2 ? ci95(perParticipantStats.limited.pmRtDelta) : undefined,
+                    color: AMBER,
+                    n: perParticipantStats.limited.pmRtDelta.length,
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    value: mean(perParticipantStats.unlimited.pmRtDelta),
+                    ci: perParticipantStats.unlimited.pmRtDelta.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtDelta) : undefined,
+                    color: BLUE,
+                    n: perParticipantStats.unlimited.pmRtDelta.length,
+                  },
+                ]}
+                unit=" ms"
+                height={180}
+              />
+              {(() => {
+                const t = welchTTest(perParticipantStats.limited.pmRtDelta, perParticipantStats.unlimited.pmRtDelta);
+                const d = cohensD(perParticipantStats.limited.pmRtDelta, perParticipantStats.unlimited.pmRtDelta);
+                return (
+                  <div className="mt-3 text-center space-y-0.5">
+                    <div className="font-mono text-[10px] text-neutral-500">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
+                    <div className="font-mono text-[10px] text-neutral-500">d = {d.toFixed(3)}</div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </Section>
+
+        {/* ── Before vs After Break — LD Task ─────────────────────────────────── */}
+        <Section
+          title="Before vs After Break — LD Task"
+          subtitle="Lexical decision accuracy and RT by condition and phase. Per-participant means with 95% CI."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">LD Accuracy</h3>
+              <GroupedBarChart
+                groups={[
+                  {
+                    label: "Limited (A)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.limited.ldAccBefore), ci: perParticipantStats.limited.ldAccBefore.length >= 2 ? ci95(perParticipantStats.limited.ldAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldAccBefore.length },
+                      { label: "After", value: mean(perParticipantStats.limited.ldAccAfter), ci: perParticipantStats.limited.ldAccAfter.length >= 2 ? ci95(perParticipantStats.limited.ldAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldAccAfter.length },
+                    ],
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.unlimited.ldAccBefore), ci: perParticipantStats.unlimited.ldAccBefore.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldAccBefore.length },
+                      { label: "After", value: mean(perParticipantStats.unlimited.ldAccAfter), ci: perParticipantStats.unlimited.ldAccAfter.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldAccAfter.length },
+                    ],
+                  },
+                ]}
+                height={200}
+                unit="%"
               />
             </div>
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-neutral-400 uppercase tracking-wider">Limited (A)</div>
-                  <div className="font-mono">{pctStr(trialsByCondition.limited.filter((t) => t.correct).length, trialsByCondition.limited.length)}</div>
-                  <div className="text-xs text-neutral-500">{trialsByCondition.limited.filter((t) => t.correct).length}/{trialsByCondition.limited.length} trials</div>
-                </div>
-                <div>
-                  <div className="text-xs text-neutral-400 uppercase tracking-wider">Unlimited (1)</div>
-                  <div className="font-mono">{pctStr(trialsByCondition.unlimited.filter((t) => t.correct).length, trialsByCondition.unlimited.length)}</div>
-                  <div className="text-xs text-neutral-500">{trialsByCondition.unlimited.filter((t) => t.correct).length}/{trialsByCondition.unlimited.length} trials</div>
-                </div>
-              </div>
-              <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3 space-y-1">
-                <div className="font-mono text-xs">
-                  Welch&apos;s t({accTest.df.toFixed(1)}) = {accTest.t.toFixed(3)}, p = {accTest.p < 0.001 ? "< .001" : accTest.p.toFixed(3)}
-                  {accTest.p < 0.05 && <span className="text-emerald-500 ml-2">*</span>}
-                </div>
-                <div className="font-mono text-xs">Cohen&apos;s d = {accD.toFixed(3)}</div>
-              </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">LD Reaction Time</h3>
+              <GroupedBarChart
+                groups={[
+                  {
+                    label: "Limited (A)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.limited.ldRtBefore), ci: perParticipantStats.limited.ldRtBefore.length >= 2 ? ci95(perParticipantStats.limited.ldRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldRtBefore.length },
+                      { label: "After", value: mean(perParticipantStats.limited.ldRtAfter), ci: perParticipantStats.limited.ldRtAfter.length >= 2 ? ci95(perParticipantStats.limited.ldRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldRtAfter.length },
+                    ],
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.unlimited.ldRtBefore), ci: perParticipantStats.unlimited.ldRtBefore.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldRtBefore.length },
+                      { label: "After", value: mean(perParticipantStats.unlimited.ldRtAfter), ci: perParticipantStats.unlimited.ldRtAfter.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldRtAfter.length },
+                    ],
+                  },
+                ]}
+                height={200}
+                unit=" ms"
+              />
             </div>
           </div>
         </Section>
 
-        {/* ── Before vs After Break (by condition) ────────────────────────────── */}
+        {/* ── Before vs After Break — PM Task ─────────────────────────────────── */}
         <Section
-          title="Before vs After Break — Reaction Time"
-          subtitle="Did the social media break differentially affect performance? Per-participant means with 95% CI."
+          title="Before vs After Break — PM Task"
+          subtitle="Prospective memory cue accuracy and RT by condition and phase. Per-participant means with 95% CI."
         >
-          <GroupedBarChart
-            groups={[
-              {
-                label: "Limited (A)",
-                bars: [
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">PM Accuracy</h3>
+              <GroupedBarChart
+                groups={[
                   {
-                    label: "Before",
-                    value: mean(perParticipantStats.limited.rtBefore),
-                    ci: perParticipantStats.limited.rtBefore.length >= 2 ? ci95(perParticipantStats.limited.rtBefore) : undefined,
-                    color: AMBER,
-                    n: perParticipantStats.limited.rtBefore.length,
+                    label: "Limited (A)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.limited.pmAccBefore), ci: perParticipantStats.limited.pmAccBefore.length >= 2 ? ci95(perParticipantStats.limited.pmAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmAccBefore.length },
+                      { label: "After", value: mean(perParticipantStats.limited.pmAccAfter), ci: perParticipantStats.limited.pmAccAfter.length >= 2 ? ci95(perParticipantStats.limited.pmAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmAccAfter.length },
+                    ],
                   },
                   {
-                    label: "After",
-                    value: mean(perParticipantStats.limited.rtAfter),
-                    ci: perParticipantStats.limited.rtAfter.length >= 2 ? ci95(perParticipantStats.limited.rtAfter) : undefined,
-                    color: ROSE,
-                    n: perParticipantStats.limited.rtAfter.length,
+                    label: "Unlimited (1)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.unlimited.pmAccBefore), ci: perParticipantStats.unlimited.pmAccBefore.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmAccBefore.length },
+                      { label: "After", value: mean(perParticipantStats.unlimited.pmAccAfter), ci: perParticipantStats.unlimited.pmAccAfter.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmAccAfter.length },
+                    ],
                   },
-                ],
-              },
-              {
-                label: "Unlimited (1)",
-                bars: [
-                  {
-                    label: "Before",
-                    value: mean(perParticipantStats.unlimited.rtBefore),
-                    ci: perParticipantStats.unlimited.rtBefore.length >= 2 ? ci95(perParticipantStats.unlimited.rtBefore) : undefined,
-                    color: BLUE,
-                    n: perParticipantStats.unlimited.rtBefore.length,
-                  },
-                  {
-                    label: "After",
-                    value: mean(perParticipantStats.unlimited.rtAfter),
-                    ci: perParticipantStats.unlimited.rtAfter.length >= 2 ? ci95(perParticipantStats.unlimited.rtAfter) : undefined,
-                    color: PURPLE,
-                    n: perParticipantStats.unlimited.rtAfter.length,
-                  },
-                ],
-              },
-            ]}
-            height={220}
-            unit=" ms"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="bg-neutral-50 dark:bg-neutral-800/30 rounded-lg p-4 space-y-1">
-              <div className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Limited (A) — Before vs After</div>
-              {(() => {
-                const t = welchTTest(perParticipantStats.limited.rtBefore, perParticipantStats.limited.rtAfter);
-                const d = cohensD(perParticipantStats.limited.rtBefore, perParticipantStats.limited.rtAfter);
-                return (
-                  <>
-                    <div className="font-mono text-xs">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
-                    <div className="font-mono text-xs">d = {d.toFixed(3)}</div>
-                  </>
-                );
-              })()}
+                ]}
+                height={200}
+                unit="%"
+              />
             </div>
-            <div className="bg-neutral-50 dark:bg-neutral-800/30 rounded-lg p-4 space-y-1">
-              <div className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Unlimited (1) — Before vs After</div>
-              {(() => {
-                const t = welchTTest(perParticipantStats.unlimited.rtBefore, perParticipantStats.unlimited.rtAfter);
-                const d = cohensD(perParticipantStats.unlimited.rtBefore, perParticipantStats.unlimited.rtAfter);
-                return (
-                  <>
-                    <div className="font-mono text-xs">t({t.df.toFixed(1)}) = {t.t.toFixed(3)}, p = {t.p < 0.001 ? "< .001" : t.p.toFixed(3)}{t.p < 0.05 && <span className="text-emerald-500 ml-1">*</span>}</div>
-                    <div className="font-mono text-xs">d = {d.toFixed(3)}</div>
-                  </>
-                );
-              })()}
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 mb-4">PM Reaction Time</h3>
+              <GroupedBarChart
+                groups={[
+                  {
+                    label: "Limited (A)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.limited.pmRtBefore), ci: perParticipantStats.limited.pmRtBefore.length >= 2 ? ci95(perParticipantStats.limited.pmRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmRtBefore.length },
+                      { label: "After", value: mean(perParticipantStats.limited.pmRtAfter), ci: perParticipantStats.limited.pmRtAfter.length >= 2 ? ci95(perParticipantStats.limited.pmRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmRtAfter.length },
+                    ],
+                  },
+                  {
+                    label: "Unlimited (1)",
+                    bars: [
+                      { label: "Before", value: mean(perParticipantStats.unlimited.pmRtBefore), ci: perParticipantStats.unlimited.pmRtBefore.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmRtBefore.length },
+                      { label: "After", value: mean(perParticipantStats.unlimited.pmRtAfter), ci: perParticipantStats.unlimited.pmRtAfter.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmRtAfter.length },
+                    ],
+                  },
+                ]}
+                height={200}
+                unit=" ms"
+              />
             </div>
           </div>
-        </Section>
-
-        {/* ── Before vs After Break — Accuracy ────────────────────────────────── */}
-        <Section
-          title="Before vs After Break — Accuracy"
-          subtitle="Accuracy change across the break. Per-participant means with 95% CI."
-        >
-          <GroupedBarChart
-            groups={[
-              {
-                label: "Limited (A)",
-                bars: [
-                  {
-                    label: "Before",
-                    value: mean(perParticipantStats.limited.accBefore),
-                    ci: perParticipantStats.limited.accBefore.length >= 2 ? ci95(perParticipantStats.limited.accBefore) : undefined,
-                    color: AMBER,
-                    n: perParticipantStats.limited.accBefore.length,
-                  },
-                  {
-                    label: "After",
-                    value: mean(perParticipantStats.limited.accAfter),
-                    ci: perParticipantStats.limited.accAfter.length >= 2 ? ci95(perParticipantStats.limited.accAfter) : undefined,
-                    color: ROSE,
-                    n: perParticipantStats.limited.accAfter.length,
-                  },
-                ],
-              },
-              {
-                label: "Unlimited (1)",
-                bars: [
-                  {
-                    label: "Before",
-                    value: mean(perParticipantStats.unlimited.accBefore),
-                    ci: perParticipantStats.unlimited.accBefore.length >= 2 ? ci95(perParticipantStats.unlimited.accBefore) : undefined,
-                    color: BLUE,
-                    n: perParticipantStats.unlimited.accBefore.length,
-                  },
-                  {
-                    label: "After",
-                    value: mean(perParticipantStats.unlimited.accAfter),
-                    ci: perParticipantStats.unlimited.accAfter.length >= 2 ? ci95(perParticipantStats.unlimited.accAfter) : undefined,
-                    color: PURPLE,
-                    n: perParticipantStats.unlimited.accAfter.length,
-                  },
-                ],
-              },
-            ]}
-            height={220}
-            unit="%"
-          />
-        </Section>
-
-        {/* ── PM vs LD Accuracy by Condition ──────────────────────────────────── */}
-        <Section
-          title="PM vs LD Accuracy by Condition"
-          subtitle="Prospective memory cue accuracy vs lexical decision accuracy."
-        >
-          <GroupedBarChart
-            groups={[
-              {
-                label: "Limited (A)",
-                bars: [
-                  {
-                    label: "PM Cues",
-                    value: mean(perParticipantStats.limited.pmAcc),
-                    ci: perParticipantStats.limited.pmAcc.length >= 2 ? ci95(perParticipantStats.limited.pmAcc) : undefined,
-                    color: PURPLE,
-                    n: perParticipantStats.limited.pmAcc.length,
-                  },
-                  {
-                    label: "LD Trials",
-                    value: mean(perParticipantStats.limited.ldAcc),
-                    ci: perParticipantStats.limited.ldAcc.length >= 2 ? ci95(perParticipantStats.limited.ldAcc) : undefined,
-                    color: AMBER,
-                    n: perParticipantStats.limited.ldAcc.length,
-                  },
-                ],
-              },
-              {
-                label: "Unlimited (1)",
-                bars: [
-                  {
-                    label: "PM Cues",
-                    value: mean(perParticipantStats.unlimited.pmAcc),
-                    ci: perParticipantStats.unlimited.pmAcc.length >= 2 ? ci95(perParticipantStats.unlimited.pmAcc) : undefined,
-                    color: PURPLE,
-                    n: perParticipantStats.unlimited.pmAcc.length,
-                  },
-                  {
-                    label: "LD Trials",
-                    value: mean(perParticipantStats.unlimited.ldAcc),
-                    ci: perParticipantStats.unlimited.ldAcc.length >= 2 ? ci95(perParticipantStats.unlimited.ldAcc) : undefined,
-                    color: BLUE,
-                    n: perParticipantStats.unlimited.ldAcc.length,
-                  },
-                ],
-              },
-            ]}
-            height={220}
-            unit="%"
-          />
         </Section>
 
         {/* ── Survey Breakdown ────────────────────────────────────────────────── */}
