@@ -80,11 +80,21 @@ const NONWORDS_BLOCK_B: string[] = [
 ];
 
 // Training stimuli (separate from main pools)
+// Practice 1 (LD only) uses TRAINING_WORDS / TRAINING_NONWORDS (5 each → 10 trials)
+// Practice 2 (PM) uses TRAINING_WORDS_PM / TRAINING_NONWORDS_PM (7 each → 14 LD + 6 PM = 20 trials)
 const TRAINING_WORDS: string[] = [
   "GARDEN", "SIMPLE", "PLANET", "WONDER", "BASKET",
 ];
 const TRAINING_NONWORDS: string[] = [
   "GARDAN", "SIMPLA", "PLANAT", "WONDAR", "BASKAT",
+];
+const TRAINING_WORDS_PM: string[] = [
+  "GARDEN", "SIMPLE", "PLANET", "WONDER", "BASKET",
+  "SILVER", "TEMPLE",
+];
+const TRAINING_NONWORDS_PM: string[] = [
+  "GARDAN", "SIMPLA", "PLANAT", "WONDAR", "BASKAT",
+  "SILVAR", "TEMPLA",
 ];
 
 function shuffle<T>(array: T[]): T[] {
@@ -172,40 +182,66 @@ export function generateTrials(
 }
 
 /**
- * Generate training trials
+ * Generate training trials.
+ * LD practice: 10 trials (5 word + 5 nonword)
+ * PM practice: 20 trials (14 LD + 6 PM cues, spaced using gap algorithm)
  */
 export function generateTrainingTrials(taskType: "LD" | "PM"): Trial[] {
-  const trials: Trial[] = [];
-  for (let i = 0; i < TRAINING_WORDS.length; i++) {
-    trials.push({ index: 0, stimulus: TRAINING_WORDS[i], type: "word" });
-    trials.push({ index: 0, stimulus: TRAINING_NONWORDS[i], type: "nonword" });
+  if (taskType === "LD") {
+    const trials: Trial[] = [];
+    for (let i = 0; i < TRAINING_WORDS.length; i++) {
+      trials.push({ index: 0, stimulus: TRAINING_WORDS[i], type: "word" });
+      trials.push({ index: 0, stimulus: TRAINING_NONWORDS[i], type: "nonword" });
+    }
+    return shuffle(trials).map((t, i) => ({ ...t, index: i }));
   }
 
-  const shuffled = shuffle(trials);
+  // PM practice: 14 LD trials + 6 PM cues = 20 total
+  const ldTrials: Trial[] = [];
+  for (let i = 0; i < TRAINING_WORDS_PM.length; i++) {
+    ldTrials.push({ index: 0, stimulus: TRAINING_WORDS_PM[i], type: "word" });
+    ldTrials.push({ index: 0, stimulus: TRAINING_NONWORDS_PM[i], type: "nonword" });
+  }
+  const shuffledLD = shuffle(ldTrials);
 
-  if (taskType === "PM") {
-    // Insert one of each PM cue color into practice
-    shuffled.splice(3, 0, {
+  // 6 PM cues: 2 of each color, shuffled
+  const pmTrials: Trial[] = [];
+  for (let i = 0; i < 6; i++) {
+    const cue = PM_CUES[i % PM_CUES.length];
+    pmTrials.push({
       index: 0,
-      stimulus: PM_CUES[0].word,
+      stimulus: cue.word,
       type: "pm_cue",
-      pmCueKey: PM_CUES[0].key,
-    });
-    shuffled.splice(7, 0, {
-      index: 0,
-      stimulus: PM_CUES[1].word,
-      type: "pm_cue",
-      pmCueKey: PM_CUES[1].key,
-    });
-    shuffled.splice(11, 0, {
-      index: 0,
-      stimulus: PM_CUES[2].word,
-      type: "pm_cue",
-      pmCueKey: PM_CUES[2].key,
+      pmCueKey: cue.key,
     });
   }
+  const shuffledPM = shuffle(pmTrials);
 
-  return shuffled.map((t, i) => ({ ...t, index: i }));
+  // Use gap-based placement: at least 1 LD before first PM, at least 1 between
+  const numPM = shuffledPM.length;
+  const numLD = shuffledLD.length;
+  const numGaps = numPM + 1;
+  const gaps = new Array(numGaps).fill(0);
+  gaps[0] = 2; // a couple LD trials before first PM cue in practice
+  for (let i = 1; i < numPM; i++) gaps[i] = 1;
+  const slack = numLD - gaps.reduce((a, b) => a + b, 0);
+  for (let s = 0; s < slack; s++) {
+    gaps[Math.floor(Math.random() * numGaps)]++;
+  }
+
+  const combined: Trial[] = [];
+  let ldIdx = 0;
+  for (let i = 0; i < numPM; i++) {
+    for (let j = 0; j < gaps[i]; j++) {
+      if (ldIdx < numLD) combined.push(shuffledLD[ldIdx++]);
+    }
+    combined.push(shuffledPM[i]);
+  }
+  while (ldIdx < numLD) {
+    combined.push(shuffledLD[ldIdx++]);
+  }
+
+  return combined.map((t, i) => ({ ...t, index: i }));
 }
 
 /**
