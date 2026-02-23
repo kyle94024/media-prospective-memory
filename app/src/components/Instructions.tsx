@@ -130,11 +130,16 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
 
             <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
               These color words will appear occasionally among the regular {isExperiment ? "items" : "stimuli"}.
-              You must remember to press the correct key when you see them.{" "}
-              <span className="text-violet-700 dark:text-violet-300 font-semibold">
-                During the actual task, no reminders will be shown on screen.
-              </span>
+              You must remember to press the correct key when you see them.
             </p>
+            <div className="flex items-start gap-2.5 bg-rose-100 dark:bg-rose-900/30 rounded-lg px-4 py-3 border border-rose-300 dark:border-rose-700">
+              <svg className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span className="text-rose-700 dark:text-rose-300 text-sm leading-relaxed">
+                <strong>Memorize these key mappings.</strong> During the actual task, no reminders will be shown on screen. You will practice first, but you need to know them from memory.
+              </span>
+            </div>
 
             {/* Acknowledgment checkbox */}
             <label
@@ -173,9 +178,9 @@ export default function Instructions({ taskType, isExperiment = false, onContinu
                   {/* Finger labels */}
                   <div className="flex gap-1.5 w-full">
                     {[
-                      { finger: "Index", color: PM_CUES[0].color },
+                      { finger: "Ring", color: PM_CUES[0].color },
                       { finger: "Mid", color: PM_CUES[1].color },
-                      { finger: "Ring", color: PM_CUES[2].color },
+                      { finger: "Index", color: PM_CUES[2].color },
                     ].map((f) => (
                       <div key={f.finger} className="flex-1 text-center">
                         <div className="text-[10px] font-medium" style={{ color: f.color }}>{f.finger}</div>

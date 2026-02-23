@@ -39,6 +39,7 @@ interface RawSurvey {
   platform_used_during: string | null;
   daily_usage: string | null;
   condition: string | null;
+  handedness: string | null;
   free_response: string | null;
   created_at: string;
 }
@@ -1248,7 +1249,8 @@ export default function AnalysisPage() {
                   <th className="text-left py-2 pr-4 text-xs text-neutral-400 uppercase tracking-wider">Condition</th>
                   <th className="text-left py-2 pr-4 text-xs text-neutral-400 uppercase tracking-wider">Most Used</th>
                   <th className="text-left py-2 pr-4 text-xs text-neutral-400 uppercase tracking-wider">Used During</th>
-                  <th className="text-left py-2 text-xs text-neutral-400 uppercase tracking-wider">Daily Usage</th>
+                  <th className="text-left py-2 pr-4 text-xs text-neutral-400 uppercase tracking-wider">Daily Usage</th>
+                  <th className="text-left py-2 text-xs text-neutral-400 uppercase tracking-wider">Handedness</th>
                 </tr>
               </thead>
               <tbody>
@@ -1266,11 +1268,12 @@ export default function AnalysisPage() {
                     </td>
                     <td className="py-2 pr-4 text-neutral-600 dark:text-neutral-400">{s.platform_most_used ? platformLabel(s.platform_most_used) : "—"}</td>
                     <td className="py-2 pr-4 text-neutral-600 dark:text-neutral-400">{s.platform_used_during ? platformLabel(s.platform_used_during) : "—"}</td>
-                    <td className="py-2 text-neutral-600 dark:text-neutral-400">{s.daily_usage || "—"}</td>
+                    <td className="py-2 pr-4 text-neutral-600 dark:text-neutral-400">{s.daily_usage || "—"}</td>
+                    <td className="py-2 text-neutral-600 dark:text-neutral-400 capitalize">{s.handedness || "—"}</td>
                   </tr>
                 ))}
                 {filteredSurveys.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 text-center text-neutral-400 italic">No survey data</td></tr>
+                  <tr><td colSpan={6} className="py-6 text-center text-neutral-400 italic">No survey data</td></tr>
                 )}
               </tbody>
             </table>
@@ -1390,9 +1393,9 @@ export default function AnalysisPage() {
             <button
               onClick={() => {
                 const csv = [
-                  ["id", "participant_id", "study_id", "condition", "platform_most_used", "platform_used_during", "daily_usage", "free_response", "created_at"].join(","),
+                  ["id", "participant_id", "study_id", "condition", "platform_most_used", "platform_used_during", "daily_usage", "handedness", "free_response", "created_at"].join(","),
                   ...filteredSurveys.map((s) =>
-                    [s.id, s.participant_id, s.study_id || "", s.condition || "", s.platform_most_used || "", s.platform_used_during || "", `"${(s.daily_usage || "").replace(/"/g, '""')}"`, `"${(s.free_response || "").replace(/"/g, '""')}"`, s.created_at].join(",")
+                    [s.id, s.participant_id, s.study_id || "", s.condition || "", s.platform_most_used || "", s.platform_used_during || "", `"${(s.daily_usage || "").replace(/"/g, '""')}"`, s.handedness || "", `"${(s.free_response || "").replace(/"/g, '""')}"`, s.created_at].join(",")
                   ),
                 ].join("\n");
                 const blob = new Blob([csv], { type: "text/csv" });

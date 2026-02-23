@@ -46,6 +46,7 @@ export default function Survey({ participantId, studyId, condition, onComplete }
   const [platformMostUsed, setPlatformMostUsed] = useState<string | null>(null);
   const [platformUsedDuring, setPlatformUsedDuring] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState("");
+  const [handedness, setHandedness] = useState<string | null>(null);
   const [freeResponse, setFreeResponse] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +63,7 @@ export default function Survey({ participantId, studyId, condition, onComplete }
           platformUsedDuring: platformUsedDuring || null,
           dailyUsage: dailyUsage.trim() || null,
           condition: condition || null,
+          handedness: handedness || null,
           freeResponse: freeResponse.trim() || null,
         }),
       });
@@ -161,7 +163,44 @@ export default function Survey({ participantId, studyId, condition, onComplete }
             />
           </div>
 
-          {/* Q4: Free response */}
+          {/* Q4: Handedness */}
+          <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
+            <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Which hand do you primarily use?
+            </label>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { id: "right", label: "Right" },
+                { id: "left", label: "Left" },
+                { id: "ambidextrous", label: "Ambidextrous" },
+              ].map((option) => {
+                const isSelected = handedness === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => setHandedness(option.id)}
+                    className={`flex items-center justify-center gap-2 p-5 rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? "border-neutral-900 dark:border-white bg-neutral-50 dark:bg-neutral-800/50 scale-[1.02]"
+                        : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/30"
+                    }`}
+                  >
+                    <span
+                      className={`text-sm font-medium ${
+                        isSelected
+                          ? "text-neutral-900 dark:text-white"
+                          : "text-neutral-500 dark:text-neutral-400"
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Q5: Free response */}
           <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-9 space-y-6">
             <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300">
               Is there anything else you would like to mention?
