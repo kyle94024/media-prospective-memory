@@ -372,6 +372,7 @@ function ExperimentContent({ condition, basePath }: { condition: ExperimentCondi
             {breakDone && (
               <p className="text-neutral-500 text-base leading-relaxed">
                 Part A is complete. You&apos;ll now repeat the task for Part B.
+                All the same rules apply — respond as quickly and accurately as possible.
               </p>
             )}
 
