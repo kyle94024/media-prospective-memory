@@ -315,6 +315,9 @@ export default function AnalysisPage() {
   const [filterPlatform, setFilterPlatform] = useState<"all" | "youtube-shorts" | "instagram" | "tiktok">("all");
   const [correctOnly, setCorrectOnly] = useState(false);
 
+  // Session exclusion (transient — resets on page load)
+  const [excludedStudyIds, setExcludedStudyIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetch("/api/analysis")
       .then((r) => r.json())
@@ -358,9 +361,10 @@ export default function AnalysisPage() {
         const cond = getConditionForSession(s);
         if (cond !== filterCondition) return false;
       }
+      if (s.study_id && excludedStudyIds.has(s.study_id)) return false;
       return true;
     });
-  }, [sessions, completedOnly, filterPhase, filterCondition, getConditionForSession]);
+  }, [sessions, completedOnly, filterPhase, filterCondition, getConditionForSession, excludedStudyIds]);
 
   const filteredSessionIds = useMemo(() => new Set(filteredSessions.map((s) => s.id)), [filteredSessions]);
 
@@ -381,9 +385,10 @@ export default function AnalysisPage() {
     return surveys.filter((s) => {
       if (filterCondition !== "all" && s.condition !== filterCondition) return false;
       if (filterPlatform !== "all" && s.platform_used_during !== filterPlatform) return false;
+      if (s.study_id && excludedStudyIds.has(s.study_id)) return false;
       return true;
     });
-  }, [surveys, filterCondition, filterPlatform]);
+  }, [surveys, filterCondition, filterPlatform, excludedStudyIds]);
 
   // ── Unique study IDs (participants) ────────────────────────────────────────
 
@@ -394,6 +399,67 @@ export default function AnalysisPage() {
     }
     return ids;
   }, [filteredSessions]);
+
+  // ── Per-participant summaries for session management ─────────────────────
+
+  interface ParticipantSummary {
+    studyId: string;
+    condition: string | null;
+    sessionCount: number;
+    trialCount: number;
+    completedSessions: number;
+    overallAccuracy: number;
+    meanRT: number | null;
+    survey: RawSurvey | null;
+    completedAt: string | null; // latest completed_at timestamp
+  }
+
+  const participantSummaries = useMemo(() => {
+    // Group completed sessions by study_id
+    const byStudy: Record<string, RawSession[]> = {};
+    for (const s of sessions) {
+      if (!s.study_id || !s.completed_at) continue;
+      if (!byStudy[s.study_id]) byStudy[s.study_id] = [];
+      byStudy[s.study_id].push(s);
+    }
+
+    const summaries: ParticipantSummary[] = [];
+    for (const [studyId, pSessions] of Object.entries(byStudy)) {
+      const pSessionIds = new Set(pSessions.map((s) => s.id));
+      const pTrials = trials.filter((t) => pSessionIds.has(t.session_id));
+      const cond = getConditionForSession(pSessions[0]);
+      const survey = surveys.find((s) => s.study_id === studyId) || null;
+      const correctTrials = pTrials.filter((t) => t.correct);
+      const rts = pTrials.filter((t) => t.correct && t.reaction_time !== null).map((t) => t.reaction_time!);
+      const latestCompleted = pSessions
+        .map((s) => s.completed_at)
+        .filter(Boolean)
+        .sort()
+        .reverse()[0] || null;
+
+      summaries.push({
+        studyId,
+        condition: cond,
+        sessionCount: pSessions.length,
+        trialCount: pTrials.length,
+        completedSessions: pSessions.filter((s) => s.completed_at).length,
+        overallAccuracy: pTrials.length > 0 ? (correctTrials.length / pTrials.length) * 100 : 0,
+        meanRT: rts.length > 0 ? rts.reduce((a, b) => a + b, 0) / rts.length : null,
+        survey,
+        completedAt: latestCompleted,
+      });
+    }
+
+    // Sort by completion time (most recent first)
+    summaries.sort((a, b) => {
+      if (!a.completedAt && !b.completedAt) return 0;
+      if (!a.completedAt) return 1;
+      if (!b.completedAt) return -1;
+      return b.completedAt.localeCompare(a.completedAt);
+    });
+
+    return summaries;
+  }, [sessions, trials, surveys, getConditionForSession]);
 
   // ── Per-condition trial data ───────────────────────────────────────────────
 
@@ -770,6 +836,122 @@ export default function AnalysisPage() {
               </select>
             </div>
           </div>
+        </Section>
+
+        {/* ── Session Management ──────────────────────────────────────────────── */}
+        <Section
+          title="Session Management"
+          subtitle={`Review completed participants and exclude any from the analysis. ${excludedStudyIds.size > 0 ? `${excludedStudyIds.size} excluded.` : "All included."} Exclusions reset on page reload.`}
+        >
+          {excludedStudyIds.size > 0 && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setExcludedStudyIds(new Set())}
+                className="px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors"
+              >
+                Reset — Include all ({excludedStudyIds.size} excluded)
+              </button>
+            </div>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-neutral-300 dark:border-neutral-700">
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Include</th>
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Study ID</th>
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Condition</th>
+                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Sessions</th>
+                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Trials</th>
+                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Accuracy</th>
+                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Mean RT</th>
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Platform (During)</th>
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Platform (Most Used)</th>
+                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Daily Usage</th>
+                  <th className="text-left py-2 text-xs text-neutral-400 uppercase tracking-wider">Handedness</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participantSummaries.map((p) => {
+                  const isExcluded = excludedStudyIds.has(p.studyId);
+                  return (
+                    <tr
+                      key={p.studyId}
+                      className={`border-b border-neutral-100 dark:border-neutral-900 transition-colors ${
+                        isExcluded ? "opacity-40" : "hover:bg-neutral-50 dark:hover:bg-neutral-800/20"
+                      }`}
+                    >
+                      <td className="py-2 pr-3">
+                        <input
+                          type="checkbox"
+                          checked={!isExcluded}
+                          onChange={() => {
+                            setExcludedStudyIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(p.studyId)) {
+                                next.delete(p.studyId);
+                              } else {
+                                next.add(p.studyId);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="w-4 h-4 rounded border-2 border-neutral-300 dark:border-neutral-600 accent-blue-600 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-[10px] text-neutral-400 max-w-[180px] truncate" title={p.studyId}>
+                        {p.studyId.length > 24 ? p.studyId.slice(0, 24) + "..." : p.studyId}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {p.condition ? (
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${
+                            p.condition === "limited"
+                              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                          }`}>
+                            {p.condition === "limited" ? "A — Limited" : "1 — Unlimited"}
+                          </span>
+                        ) : (
+                          <span className="text-neutral-300 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-center font-mono text-xs">{p.sessionCount}</td>
+                      <td className="py-2 pr-3 text-center font-mono text-xs">{p.trialCount}</td>
+                      <td className={`py-2 pr-3 text-center font-mono text-xs ${
+                        p.overallAccuracy < 60 ? "text-rose-600 dark:text-rose-400 font-semibold" : ""
+                      }`}>
+                        {p.trialCount > 0 ? p.overallAccuracy.toFixed(1) + "%" : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-center font-mono text-xs">
+                        {p.meanRT !== null ? p.meanRT.toFixed(0) + " ms" : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
+                        {p.survey?.platform_used_during ? platformLabel(p.survey.platform_used_during) : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
+                        {p.survey?.platform_most_used ? platformLabel(p.survey.platform_most_used) : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
+                        {p.survey?.daily_usage || "—"}
+                      </td>
+                      <td className="py-2 text-xs text-neutral-600 dark:text-neutral-400 capitalize">
+                        {p.survey?.handedness || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {participantSummaries.length === 0 && (
+                  <tr><td colSpan={11} className="py-6 text-center text-neutral-400 italic">No completed participants found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {participantSummaries.length > 0 && (
+            <div className="text-xs text-neutral-400 dark:text-neutral-500">
+              {participantSummaries.length} completed participant{participantSummaries.length !== 1 ? "s" : ""} total.
+              {excludedStudyIds.size > 0 && ` ${participantSummaries.length - excludedStudyIds.size} included in analysis.`}
+              {" "}Low accuracy (&lt;60%) is highlighted in red.
+            </div>
+          )}
         </Section>
 
         {/* ── Overview Stats ──────────────────────────────────────────────────── */}
