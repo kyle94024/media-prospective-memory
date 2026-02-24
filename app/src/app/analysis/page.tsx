@@ -987,13 +987,57 @@ export default function AnalysisPage() {
               </tbody>
             </table>
           </div>
-          {participantSummaries.length > 0 && (
-            <div className="text-xs text-neutral-400 dark:text-neutral-500">
-              {participantSummaries.length} completed participant{participantSummaries.length !== 1 ? "s" : ""} total.
-              {excludedStudyIds.size > 0 && ` ${participantSummaries.length - excludedStudyIds.size} included in analysis.`}
-              {" "}B = Before break, A = After break. Accuracy &lt;60% highlighted in red.
-            </div>
-          )}
+          <div className="flex items-center gap-4 flex-wrap">
+            {participantSummaries.length > 0 && (
+              <div className="text-xs text-neutral-400 dark:text-neutral-500 flex-1">
+                {participantSummaries.length} completed participant{participantSummaries.length !== 1 ? "s" : ""} total.
+                {excludedStudyIds.size > 0 && ` ${participantSummaries.length - excludedStudyIds.size} included in analysis.`}
+                {" "}B = Before break, A = After break. Accuracy &lt;60% highlighted in red.
+              </div>
+            )}
+            {participantSummaries.length > 0 && (
+              <button
+                onClick={() => {
+                  const header = [
+                    "study_id", "condition",
+                    "ld_acc_before", "ld_acc_after", "ld_rt_before", "ld_rt_after",
+                    "pm_acc_before", "pm_acc_after", "pm_rt_before", "pm_rt_after",
+                    "total_trials",
+                    "platform_used_during", "platform_most_used", "daily_usage", "handedness", "free_response",
+                  ].join(",");
+                  const rows = participantSummaries.map((p) => [
+                    p.studyId,
+                    p.condition || "",
+                    p.ldBefore.accuracy !== null ? p.ldBefore.accuracy.toFixed(2) : "",
+                    p.ldAfter.accuracy !== null ? p.ldAfter.accuracy.toFixed(2) : "",
+                    p.ldBefore.meanRT !== null ? p.ldBefore.meanRT.toFixed(2) : "",
+                    p.ldAfter.meanRT !== null ? p.ldAfter.meanRT.toFixed(2) : "",
+                    p.pmBefore.accuracy !== null ? p.pmBefore.accuracy.toFixed(2) : "",
+                    p.pmAfter.accuracy !== null ? p.pmAfter.accuracy.toFixed(2) : "",
+                    p.pmBefore.meanRT !== null ? p.pmBefore.meanRT.toFixed(2) : "",
+                    p.pmAfter.meanRT !== null ? p.pmAfter.meanRT.toFixed(2) : "",
+                    p.trialCount,
+                    p.survey?.platform_used_during || "",
+                    p.survey?.platform_most_used || "",
+                    `"${(p.survey?.daily_usage || "").replace(/"/g, '""')}"`,
+                    p.survey?.handedness || "",
+                    `"${(p.survey?.free_response || "").replace(/"/g, '""')}"`,
+                  ].join(","));
+                  const csv = [header, ...rows].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "participant_summaries.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors whitespace-nowrap"
+              >
+                Export Participant Summaries CSV
+              </button>
+            )}
+          </div>
         </Section>
 
         {/* ── Overview Stats ──────────────────────────────────────────────────── */}
