@@ -402,20 +402,26 @@ export default function AnalysisPage() {
 
   // ── Per-participant summaries for session management ─────────────────────
 
+  interface PhaseMetrics {
+    accuracy: number | null; // percentage
+    meanRT: number | null;   // ms
+    trialCount: number;
+  }
+
   interface ParticipantSummary {
     studyId: string;
     condition: string | null;
     sessionCount: number;
     trialCount: number;
-    completedSessions: number;
-    overallAccuracy: number;
-    meanRT: number | null;
+    ldBefore: PhaseMetrics;
+    ldAfter: PhaseMetrics;
+    pmBefore: PhaseMetrics;
+    pmAfter: PhaseMetrics;
     survey: RawSurvey | null;
-    completedAt: string | null; // latest completed_at timestamp
+    completedAt: string | null;
   }
 
   const participantSummaries = useMemo(() => {
-    // Group completed sessions by study_id
     const byStudy: Record<string, RawSession[]> = {};
     for (const s of sessions) {
       if (!s.study_id || !s.completed_at) continue;
@@ -423,34 +429,55 @@ export default function AnalysisPage() {
       byStudy[s.study_id].push(s);
     }
 
+    const computeMetrics = (trialSet: RawTrial[]): PhaseMetrics => {
+      if (trialSet.length === 0) return { accuracy: null, meanRT: null, trialCount: 0 };
+      const correct = trialSet.filter((t) => t.correct);
+      const rts = trialSet.filter((t) => t.correct && t.reaction_time !== null).map((t) => t.reaction_time!);
+      return {
+        accuracy: (correct.length / trialSet.length) * 100,
+        meanRT: rts.length > 0 ? rts.reduce((a, b) => a + b, 0) / rts.length : null,
+        trialCount: trialSet.length,
+      };
+    };
+
     const summaries: ParticipantSummary[] = [];
     for (const [studyId, pSessions] of Object.entries(byStudy)) {
       const pSessionIds = new Set(pSessions.map((s) => s.id));
       const pTrials = trials.filter((t) => pSessionIds.has(t.session_id));
       const cond = getConditionForSession(pSessions[0]);
       const survey = surveys.find((s) => s.study_id === studyId) || null;
-      const correctTrials = pTrials.filter((t) => t.correct);
-      const rts = pTrials.filter((t) => t.correct && t.reaction_time !== null).map((t) => t.reaction_time!);
       const latestCompleted = pSessions
         .map((s) => s.completed_at)
         .filter(Boolean)
         .sort()
         .reverse()[0] || null;
 
+      // Split trials by phase
+      const beforeSessionIds = new Set(pSessions.filter((s) => s.phase === "before").map((s) => s.id));
+      const afterSessionIds = new Set(pSessions.filter((s) => s.phase === "after").map((s) => s.id));
+      const beforeTrials = pTrials.filter((t) => beforeSessionIds.has(t.session_id));
+      const afterTrials = pTrials.filter((t) => afterSessionIds.has(t.session_id));
+
+      // Split by trial type and phase
+      const ldBefore = beforeTrials.filter((t) => t.stimulus_type !== "pm_cue");
+      const ldAfter = afterTrials.filter((t) => t.stimulus_type !== "pm_cue");
+      const pmBefore = beforeTrials.filter((t) => t.stimulus_type === "pm_cue");
+      const pmAfter = afterTrials.filter((t) => t.stimulus_type === "pm_cue");
+
       summaries.push({
         studyId,
         condition: cond,
         sessionCount: pSessions.length,
         trialCount: pTrials.length,
-        completedSessions: pSessions.filter((s) => s.completed_at).length,
-        overallAccuracy: pTrials.length > 0 ? (correctTrials.length / pTrials.length) * 100 : 0,
-        meanRT: rts.length > 0 ? rts.reduce((a, b) => a + b, 0) / rts.length : null,
+        ldBefore: computeMetrics(ldBefore),
+        ldAfter: computeMetrics(ldAfter),
+        pmBefore: computeMetrics(pmBefore),
+        pmAfter: computeMetrics(pmAfter),
         survey,
         completedAt: latestCompleted,
       });
     }
 
-    // Sort by completion time (most recent first)
     summaries.sort((a, b) => {
       if (!a.completedAt && !b.completedAt) return 0;
       if (!a.completedAt) return 1;
@@ -856,23 +883,41 @@ export default function AnalysisPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
+                <tr className="border-b border-neutral-200 dark:border-neutral-800">
+                  <th className="text-left py-2 pr-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}></th>
+                  <th className="text-left py-2 pr-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Study ID</th>
+                  <th className="text-left py-2 pr-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Cond</th>
+                  <th className="text-center px-1 py-1 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-200 dark:border-neutral-800" colSpan={2}>LD Acc (%)</th>
+                  <th className="text-center px-1 py-1 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-200 dark:border-neutral-800" colSpan={2}>LD RT (ms)</th>
+                  <th className="text-center px-1 py-1 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-200 dark:border-neutral-800" colSpan={2}>PM Acc (%)</th>
+                  <th className="text-center px-1 py-1 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-200 dark:border-neutral-800" colSpan={2}>PM RT (ms)</th>
+                  <th className="text-center py-2 pr-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Trials</th>
+                  <th className="text-left py-2 pr-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Platform</th>
+                  <th className="text-left py-2 text-xs text-neutral-400 uppercase tracking-wider" rowSpan={2}>Survey</th>
+                </tr>
                 <tr className="border-b-2 border-neutral-300 dark:border-neutral-700">
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Include</th>
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Study ID</th>
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Condition</th>
-                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Sessions</th>
-                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Trials</th>
-                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Accuracy</th>
-                  <th className="text-center py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Mean RT</th>
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Platform (During)</th>
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Platform (Most Used)</th>
-                  <th className="text-left py-2 pr-3 text-xs text-neutral-400 uppercase tracking-wider">Daily Usage</th>
-                  <th className="text-left py-2 text-xs text-neutral-400 uppercase tracking-wider">Handedness</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">B</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">A</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">B</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">A</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">B</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">A</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">B</th>
+                  <th className="text-center px-1 py-1 text-[9px] text-neutral-400 uppercase">A</th>
                 </tr>
               </thead>
               <tbody>
                 {participantSummaries.map((p) => {
                   const isExcluded = excludedStudyIds.has(p.studyId);
+                  const accCell = (m: PhaseMetrics) => {
+                    if (m.accuracy === null) return "—";
+                    const low = m.accuracy < 60;
+                    return <span className={low ? "text-rose-600 dark:text-rose-400 font-semibold" : ""}>{m.accuracy.toFixed(1)}</span>;
+                  };
+                  const rtCell = (m: PhaseMetrics) => {
+                    if (m.meanRT === null) return "—";
+                    return m.meanRT.toFixed(0);
+                  };
                   return (
                     <tr
                       key={p.studyId}
@@ -880,7 +925,7 @@ export default function AnalysisPage() {
                         isExcluded ? "opacity-40" : "hover:bg-neutral-50 dark:hover:bg-neutral-800/20"
                       }`}
                     >
-                      <td className="py-2 pr-3">
+                      <td className="py-1.5 pr-2">
                         <input
                           type="checkbox"
                           checked={!isExcluded}
@@ -898,49 +943,46 @@ export default function AnalysisPage() {
                           className="w-4 h-4 rounded border-2 border-neutral-300 dark:border-neutral-600 accent-blue-600 cursor-pointer"
                         />
                       </td>
-                      <td className="py-2 pr-3 font-mono text-[10px] text-neutral-400 max-w-[180px] truncate" title={p.studyId}>
-                        {p.studyId.length > 24 ? p.studyId.slice(0, 24) + "..." : p.studyId}
+                      <td className="py-1.5 pr-2 font-mono text-[10px] text-neutral-400 max-w-[160px] truncate" title={p.studyId}>
+                        {p.studyId.length > 20 ? p.studyId.slice(0, 20) + "..." : p.studyId}
                       </td>
-                      <td className="py-2 pr-3">
+                      <td className="py-1.5 pr-2">
                         {p.condition ? (
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             p.condition === "limited"
                               ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                               : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                           }`}>
-                            {p.condition === "limited" ? "A — Limited" : "1 — Unlimited"}
+                            {p.condition === "limited" ? "A" : "1"}
                           </span>
                         ) : (
                           <span className="text-neutral-300 text-xs">—</span>
                         )}
                       </td>
-                      <td className="py-2 pr-3 text-center font-mono text-xs">{p.sessionCount}</td>
-                      <td className="py-2 pr-3 text-center font-mono text-xs">{p.trialCount}</td>
-                      <td className={`py-2 pr-3 text-center font-mono text-xs ${
-                        p.overallAccuracy < 60 ? "text-rose-600 dark:text-rose-400 font-semibold" : ""
-                      }`}>
-                        {p.trialCount > 0 ? p.overallAccuracy.toFixed(1) + "%" : "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-center font-mono text-xs">
-                        {p.meanRT !== null ? p.meanRT.toFixed(0) + " ms" : "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{accCell(p.ldBefore)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{accCell(p.ldAfter)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{rtCell(p.ldBefore)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{rtCell(p.ldAfter)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{accCell(p.pmBefore)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{accCell(p.pmAfter)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{rtCell(p.pmBefore)}</td>
+                      <td className="py-1.5 px-1 text-center font-mono text-[11px]">{rtCell(p.pmAfter)}</td>
+                      <td className="py-1.5 pr-2 text-center font-mono text-xs">{p.trialCount}</td>
+                      <td className="py-1.5 pr-2 text-[11px] text-neutral-600 dark:text-neutral-400">
                         {p.survey?.platform_used_during ? platformLabel(p.survey.platform_used_during) : "—"}
                       </td>
-                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
-                        {p.survey?.platform_most_used ? platformLabel(p.survey.platform_most_used) : "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-xs text-neutral-600 dark:text-neutral-400">
-                        {p.survey?.daily_usage || "—"}
-                      </td>
-                      <td className="py-2 text-xs text-neutral-600 dark:text-neutral-400 capitalize">
-                        {p.survey?.handedness || "—"}
+                      <td className="py-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                        {[
+                          p.survey?.platform_most_used ? `Most: ${platformLabel(p.survey.platform_most_used)}` : null,
+                          p.survey?.daily_usage ? `Daily: ${p.survey.daily_usage}` : null,
+                          p.survey?.handedness ? p.survey.handedness : null,
+                        ].filter(Boolean).join(" · ") || "—"}
                       </td>
                     </tr>
                   );
                 })}
                 {participantSummaries.length === 0 && (
-                  <tr><td colSpan={11} className="py-6 text-center text-neutral-400 italic">No completed participants found</td></tr>
+                  <tr><td colSpan={14} className="py-6 text-center text-neutral-400 italic">No completed participants found</td></tr>
                 )}
               </tbody>
             </table>
@@ -949,7 +991,7 @@ export default function AnalysisPage() {
             <div className="text-xs text-neutral-400 dark:text-neutral-500">
               {participantSummaries.length} completed participant{participantSummaries.length !== 1 ? "s" : ""} total.
               {excludedStudyIds.size > 0 && ` ${participantSummaries.length - excludedStudyIds.size} included in analysis.`}
-              {" "}Low accuracy (&lt;60%) is highlighted in red.
+              {" "}B = Before break, A = After break. Accuracy &lt;60% highlighted in red.
             </div>
           )}
         </Section>
