@@ -104,6 +104,26 @@ function normalCDF(x: number): number {
   return 0.5 * (1.0 + sign * y);
 }
 
+function skewness(arr: number[]): number {
+  if (arr.length < 3) return 0;
+  const m = mean(arr);
+  const s = stddev(arr);
+  if (s === 0) return 0;
+  const n = arr.length;
+  const sum = arr.reduce((acc, v) => acc + ((v - m) / s) ** 3, 0);
+  return (n / ((n - 1) * (n - 2))) * sum;
+}
+
+function kurtosis(arr: number[]): number {
+  if (arr.length < 4) return 0;
+  const m = mean(arr);
+  const s = stddev(arr);
+  if (s === 0) return 0;
+  const n = arr.length;
+  const sum = arr.reduce((acc, v) => acc + ((v - m) / s) ** 4, 0);
+  return ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * sum - (3 * (n - 1) ** 2) / ((n - 2) * (n - 3));
+}
+
 function pctStr(n: number, d: number): string {
   if (d === 0) return "—";
   return (100 * n / d).toFixed(1) + "%";
@@ -294,6 +314,126 @@ function Section({ title, children, subtitle }: { title: string; children: React
         {subtitle && <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─── Histogram component (pure CSS bars + SVG normal overlay) ────────────────
+
+function Histogram({
+  data,
+  color,
+  label,
+  unit = "",
+  height = 160,
+  binCount = 12,
+}: {
+  data: number[];
+  color: string;
+  label: string;
+  unit?: string;
+  height?: number;
+  binCount?: number;
+}) {
+  if (data.length < 2) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <div className="text-xs font-semibold text-neutral-500">{label}</div>
+        <div className="text-xs text-neutral-400 italic" style={{ height }}>
+          Insufficient data (n={data.length})
+        </div>
+      </div>
+    );
+  }
+
+  const m = mean(data);
+  const s = stddev(data);
+  const sk = skewness(data);
+  const ku = kurtosis(data);
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const binWidth = range / binCount;
+
+  // Build bins
+  const bins: { lo: number; hi: number; count: number }[] = [];
+  for (let i = 0; i < binCount; i++) {
+    bins.push({ lo: min + i * binWidth, hi: min + (i + 1) * binWidth, count: 0 });
+  }
+  for (const v of data) {
+    let idx = Math.floor((v - min) / binWidth);
+    if (idx >= binCount) idx = binCount - 1;
+    if (idx < 0) idx = 0;
+    bins[idx].count++;
+  }
+  const maxCount = Math.max(...bins.map((b) => b.count), 1);
+
+  // Normal curve points for SVG overlay
+  const svgW = binCount * 24;
+  const svgH = height;
+  const normalPoints: string[] = [];
+  const steps = 60;
+  for (let i = 0; i <= steps; i++) {
+    const x = min + (range * i) / steps;
+    const z = (x - m) / (s || 1);
+    const pdf = Math.exp(-0.5 * z * z) / (Math.sqrt(2 * Math.PI) * (s || 1));
+    const pdfScaled = (pdf * data.length * binWidth) / maxCount;
+    const px = (i / steps) * svgW;
+    const py = svgH - pdfScaled * svgH;
+    normalPoints.push(`${px},${Math.max(py, 0)}`);
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">{label}</div>
+      <div className="relative" style={{ width: svgW, height: svgH }}>
+        {/* Bars */}
+        <div className="flex items-end h-full gap-px">
+          {bins.map((bin, i) => {
+            const barH = (bin.count / maxCount) * height;
+            return (
+              <div
+                key={i}
+                className="flex-1 rounded-t-sm transition-all duration-300"
+                style={{
+                  height: Math.max(barH, bin.count > 0 ? 2 : 0),
+                  backgroundColor: color,
+                  opacity: 0.55,
+                }}
+                title={`${bin.lo.toFixed(1)}–${bin.hi.toFixed(1)}${unit}: ${bin.count}`}
+              />
+            );
+          })}
+        </div>
+        {/* Normal curve overlay */}
+        {s > 0 && (
+          <svg
+            className="absolute top-0 left-0 pointer-events-none"
+            width={svgW}
+            height={svgH}
+            viewBox={`0 0 ${svgW} ${svgH}`}
+          >
+            <polyline
+              points={normalPoints.join(" ")}
+              fill="none"
+              stroke={color}
+              strokeWidth={2}
+              opacity={0.9}
+            />
+          </svg>
+        )}
+      </div>
+      {/* Axis labels */}
+      <div className="flex justify-between text-[9px] text-neutral-400 font-mono" style={{ width: svgW }}>
+        <span>{min.toFixed(unit === "%" ? 1 : 0)}{unit}</span>
+        <span>{((min + max) / 2).toFixed(unit === "%" ? 1 : 0)}{unit}</span>
+        <span>{max.toFixed(unit === "%" ? 1 : 0)}{unit}</span>
+      </div>
+      {/* Stats */}
+      <div className="text-[10px] text-neutral-500 font-mono text-center leading-relaxed space-y-0.5">
+        <div>n={data.length} &ensp; M={m.toFixed(unit === "%" ? 1 : 0)}{unit} &ensp; SD={s.toFixed(unit === "%" ? 1 : 0)}{unit}</div>
+        <div>skew={sk.toFixed(2)} &ensp; kurtosis={ku.toFixed(2)}</div>
+      </div>
     </div>
   );
 }
@@ -1357,6 +1497,61 @@ export default function AnalysisPage() {
                 unit=" ms"
               />
             </div>
+          </div>
+        </Section>
+
+        {/* ── Distribution & Normality ──────────────────────────────────────── */}
+        <Section
+          title="Distribution & Normality Check"
+          subtitle="Histograms with normal curve overlay. Skewness near 0 and kurtosis near 0 suggest normality. Used to assess t-test assumptions on delta scores."
+        >
+          {/* Delta scores — the key variables for t-tests */}
+          <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Change Scores (After − Before) — by Condition</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <Histogram data={perParticipantStats.limited.ldAccDelta} color={AMBER} label="LD Acc Δ — Limited" unit="%" />
+            <Histogram data={perParticipantStats.unlimited.ldAccDelta} color={BLUE} label="LD Acc Δ — Unlimited" unit="%" />
+            <Histogram data={perParticipantStats.limited.ldRtDelta} color={AMBER} label="LD RT Δ — Limited" unit=" ms" />
+            <Histogram data={perParticipantStats.unlimited.ldRtDelta} color={BLUE} label="LD RT Δ — Unlimited" unit=" ms" />
+            <Histogram data={perParticipantStats.limited.pmAccDelta} color={AMBER} label="PM Acc Δ — Limited" unit="%" />
+            <Histogram data={perParticipantStats.unlimited.pmAccDelta} color={BLUE} label="PM Acc Δ — Unlimited" unit="%" />
+            <Histogram data={perParticipantStats.limited.pmRtDelta} color={AMBER} label="PM RT Δ — Limited" unit=" ms" />
+            <Histogram data={perParticipantStats.unlimited.pmRtDelta} color={BLUE} label="PM RT Δ — Unlimited" unit=" ms" />
+          </div>
+
+          {/* Delta scores — combined across conditions */}
+          <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 pt-4 border-t border-neutral-200 dark:border-neutral-800">Change Scores — Combined (All Participants)</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <Histogram
+              data={[...perParticipantStats.limited.ldAccDelta, ...perParticipantStats.unlimited.ldAccDelta]}
+              color={GREEN} label="LD Accuracy Δ" unit="%"
+            />
+            <Histogram
+              data={[...perParticipantStats.limited.ldRtDelta, ...perParticipantStats.unlimited.ldRtDelta]}
+              color={GREEN} label="LD RT Δ" unit=" ms"
+            />
+            <Histogram
+              data={[...perParticipantStats.limited.pmAccDelta, ...perParticipantStats.unlimited.pmAccDelta]}
+              color={PURPLE} label="PM Accuracy Δ" unit="%"
+            />
+            <Histogram
+              data={[...perParticipantStats.limited.pmRtDelta, ...perParticipantStats.unlimited.pmRtDelta]}
+              color={PURPLE} label="PM RT Δ" unit=" ms"
+            />
+          </div>
+
+          {/* Overall RT distributions */}
+          <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 pt-4 border-t border-neutral-200 dark:border-neutral-800">Overall Participant Mean RT</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <Histogram data={perParticipantStats.limited.rt} color={AMBER} label="All RT — Limited" unit=" ms" />
+            <Histogram data={perParticipantStats.unlimited.rt} color={BLUE} label="All RT — Unlimited" unit=" ms" />
+            <Histogram
+              data={[...perParticipantStats.limited.rt, ...perParticipantStats.unlimited.rt]}
+              color={GREEN} label="All RT — Combined" unit=" ms"
+            />
+            <Histogram
+              data={[...perParticipantStats.limited.acc, ...perParticipantStats.unlimited.acc]}
+              color={GREEN} label="All Accuracy — Combined" unit="%"
+            />
           </div>
         </Section>
 
