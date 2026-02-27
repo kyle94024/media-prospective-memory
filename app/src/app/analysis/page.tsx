@@ -340,8 +340,8 @@ function Histogram({
   color,
   label,
   unit = "",
-  height = 160,
-  binCount = 12,
+  height = 140,
+  binCount = 8,
 }: {
   data: number[];
   color: string;
@@ -354,7 +354,7 @@ function Histogram({
     return (
       <div className="flex flex-col items-center gap-2">
         <div className="text-xs font-semibold text-neutral-500">{label}</div>
-        <div className="text-xs text-neutral-400 italic" style={{ height }}>
+        <div className="flex items-center justify-center text-xs text-neutral-400 italic" style={{ height }}>
           Insufficient data (n={data.length})
         </div>
       </div>
@@ -365,18 +365,18 @@ function Histogram({
   const s = stddev(data);
   const sk = skewness(data);
   const ku = kurtosis(data);
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
+  const minVal = Math.min(...data);
+  const maxVal = Math.max(...data);
+  const range = maxVal - minVal || 1;
   const binWidth = range / binCount;
 
   // Build bins
   const bins: { lo: number; hi: number; count: number }[] = [];
   for (let i = 0; i < binCount; i++) {
-    bins.push({ lo: min + i * binWidth, hi: min + (i + 1) * binWidth, count: 0 });
+    bins.push({ lo: minVal + i * binWidth, hi: minVal + (i + 1) * binWidth, count: 0 });
   }
   for (const v of data) {
-    let idx = Math.floor((v - min) / binWidth);
+    let idx = Math.floor((v - minVal) / binWidth);
     if (idx >= binCount) idx = binCount - 1;
     if (idx < 0) idx = 0;
     bins[idx].count++;
@@ -384,36 +384,43 @@ function Histogram({
   const maxCount = Math.max(...bins.map((b) => b.count), 1);
 
   // Normal curve points for SVG overlay
-  const svgW = binCount * 24;
   const svgH = height;
-  const normalPoints: string[] = [];
   const steps = 60;
+  // Build points as fractions [0..1] of width, then scale in viewBox
+  const normalPoints: string[] = [];
   for (let i = 0; i <= steps; i++) {
-    const x = min + (range * i) / steps;
+    const x = minVal + (range * i) / steps;
     const z = (x - m) / (s || 1);
     const pdf = Math.exp(-0.5 * z * z) / (Math.sqrt(2 * Math.PI) * (s || 1));
     const pdfScaled = (pdf * data.length * binWidth) / maxCount;
-    const px = (i / steps) * svgW;
-    const py = svgH - pdfScaled * svgH;
+    const px = (i / steps) * 100;
+    const py = svgH - Math.min(pdfScaled, 1) * svgH;
     normalPoints.push(`${px},${Math.max(py, 0)}`);
   }
 
+  // Format axis value compactly
+  const fmtAxis = (v: number) => {
+    if (unit === "%") return v.toFixed(0) + "%";
+    if (Math.abs(v) >= 1000) return (v / 1000).toFixed(1) + "k";
+    return v.toFixed(0);
+  };
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">{label}</div>
-      <div className="relative" style={{ width: svgW, height: svgH }}>
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 text-center leading-tight">{label}</div>
+      <div className="relative w-full" style={{ height: svgH }}>
         {/* Bars */}
-        <div className="flex items-end h-full gap-px">
+        <div className="flex items-end h-full gap-[2px] px-1">
           {bins.map((bin, i) => {
             const barH = (bin.count / maxCount) * height;
             return (
               <div
                 key={i}
-                className="flex-1 rounded-t-sm transition-all duration-300"
+                className="flex-1 rounded-t-sm"
                 style={{
                   height: Math.max(barH, bin.count > 0 ? 2 : 0),
                   backgroundColor: color,
-                  opacity: 0.55,
+                  opacity: 0.7,
                 }}
                 title={`${bin.lo.toFixed(1)}–${bin.hi.toFixed(1)}${unit}: ${bin.count}`}
               />
@@ -423,31 +430,32 @@ function Histogram({
         {/* Normal curve overlay */}
         {s > 0 && (
           <svg
-            className="absolute top-0 left-0 pointer-events-none"
-            width={svgW}
-            height={svgH}
-            viewBox={`0 0 ${svgW} ${svgH}`}
+            className="absolute top-0 left-0 w-full pointer-events-none"
+            style={{ height: svgH, padding: "0 4px" }}
+            viewBox={`0 0 100 ${svgH}`}
+            preserveAspectRatio="none"
           >
             <polyline
               points={normalPoints.join(" ")}
               fill="none"
               stroke={color}
-              strokeWidth={2}
-              opacity={0.9}
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
             />
           </svg>
         )}
       </div>
       {/* Axis labels */}
-      <div className="flex justify-between text-[9px] text-neutral-400 font-mono" style={{ width: svgW }}>
-        <span>{min.toFixed(unit === "%" ? 1 : 0)}{unit}</span>
-        <span>{((min + max) / 2).toFixed(unit === "%" ? 1 : 0)}{unit}</span>
-        <span>{max.toFixed(unit === "%" ? 1 : 0)}{unit}</span>
+      <div className="flex justify-between w-full px-1 text-[9px] text-neutral-400 font-mono">
+        <span>{fmtAxis(minVal)}</span>
+        <span>{fmtAxis(maxVal)}</span>
       </div>
       {/* Stats */}
-      <div className="text-[10px] text-neutral-500 font-mono text-center leading-relaxed space-y-0.5">
-        <div>n={data.length} &ensp; M={m.toFixed(unit === "%" ? 1 : 0)}{unit} &ensp; SD={s.toFixed(unit === "%" ? 1 : 0)}{unit}</div>
-        <div>skew={sk.toFixed(2)} &ensp; kurtosis={ku.toFixed(2)}</div>
+      <div className="text-[10px] text-neutral-500 font-mono text-center space-y-px">
+        <div>n={data.length} &ensp; M={m.toFixed(unit === "%" ? 1 : 0)} &ensp; SD={s.toFixed(unit === "%" ? 1 : 0)}</div>
+        <div className={`${Math.abs(sk) > 1 ? "text-amber-600 dark:text-amber-400" : ""}`}>
+          skew={sk.toFixed(2)} &ensp; kurt={ku.toFixed(2)}
+        </div>
       </div>
     </div>
   );
@@ -1297,11 +1305,11 @@ export default function AnalysisPage() {
         {/* ── Distribution & Normality ──────────────────────────────────────── */}
         <Section
           title="Distribution & Normality Check"
-          subtitle="Histograms with normal curve overlay. Skewness near 0 and kurtosis near 0 suggest normality. Used to assess t-test assumptions on delta scores."
+          subtitle="Histograms with normal curve overlay. Skewness near 0 and kurtosis near 0 suggest normality (amber highlight if |skew| > 1). Assesses t-test assumptions on delta scores."
         >
           {/* Delta scores — the key variables for t-tests */}
           <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Change Scores (After − Before) — by Condition</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6">
             <Histogram data={perParticipantStats.limited.ldAccDelta} color={AMBER} label="LD Acc Δ — Limited" unit="%" />
             <Histogram data={perParticipantStats.unlimited.ldAccDelta} color={BLUE} label="LD Acc Δ — Unlimited" unit="%" />
             <Histogram data={perParticipantStats.limited.ldRtDelta} color={AMBER} label="LD RT Δ — Limited" unit=" ms" />
@@ -1314,7 +1322,7 @@ export default function AnalysisPage() {
 
           {/* Delta scores — combined across conditions */}
           <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 pt-4 border-t border-neutral-200 dark:border-neutral-800">Change Scores — Combined (All Participants)</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6">
             <Histogram
               data={[...perParticipantStats.limited.ldAccDelta, ...perParticipantStats.unlimited.ldAccDelta]}
               color={GREEN} label="LD Accuracy Δ" unit="%"
@@ -1334,17 +1342,17 @@ export default function AnalysisPage() {
           </div>
 
           {/* Overall RT distributions */}
-          <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 pt-4 border-t border-neutral-200 dark:border-neutral-800">Overall Participant Mean RT</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <Histogram data={perParticipantStats.limited.rt} color={AMBER} label="All RT — Limited" unit=" ms" />
-            <Histogram data={perParticipantStats.unlimited.rt} color={BLUE} label="All RT — Unlimited" unit=" ms" />
+          <h3 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 pt-4 border-t border-neutral-200 dark:border-neutral-800">Overall Participant Mean RT &amp; Accuracy</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6">
+            <Histogram data={perParticipantStats.limited.rt} color={AMBER} label="RT — Limited" unit=" ms" />
+            <Histogram data={perParticipantStats.unlimited.rt} color={BLUE} label="RT — Unlimited" unit=" ms" />
             <Histogram
               data={[...perParticipantStats.limited.rt, ...perParticipantStats.unlimited.rt]}
-              color={GREEN} label="All RT — Combined" unit=" ms"
+              color={GREEN} label="RT — Combined" unit=" ms"
             />
             <Histogram
               data={[...perParticipantStats.limited.acc, ...perParticipantStats.unlimited.acc]}
-              color={GREEN} label="All Accuracy — Combined" unit="%"
+              color={GREEN} label="Accuracy — Combined" unit="%"
             />
           </div>
         </Section>
