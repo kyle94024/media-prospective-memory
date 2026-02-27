@@ -51,6 +51,21 @@ function mean(arr: number[]): number {
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
+function median(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function iqr(arr: number[]): [number, number] {
+  if (arr.length < 2) return [0, 0];
+  const sorted = [...arr].sort((a, b) => a - b);
+  const q1Idx = Math.floor(sorted.length * 0.25);
+  const q3Idx = Math.floor(sorted.length * 0.75);
+  return [sorted[q1Idx], sorted[q3Idx]];
+}
+
 function stddev(arr: number[]): number {
   if (arr.length < 2) return 0;
   const m = mean(arr);
@@ -454,6 +469,7 @@ export default function AnalysisPage() {
   const [filterStimulusType, setFilterStimulusType] = useState<"all" | "word" | "nonword" | "pm_cue">("all");
   const [filterPlatform, setFilterPlatform] = useState<"all" | "youtube-shorts" | "instagram" | "tiktok">("all");
   const [correctOnly, setCorrectOnly] = useState(false);
+  const [useMedian, setUseMedian] = useState(false);
 
   // Session exclusion (transient — resets on page load)
   const [excludedStudyIds, setExcludedStudyIds] = useState<Set<string>>(new Set());
@@ -888,9 +904,22 @@ export default function AnalysisPage() {
   const platformColor = (id: string) =>
     id === "youtube-shorts" ? "#FF0000" : id === "instagram" ? "#E1306C" : "#000000";
 
+  // Central tendency wrappers — switch on useMedian toggle
+  const ct = (arr: number[]) => useMedian ? median(arr) : mean(arr);
+  const ctCI = (arr: number[]): [number, number] | undefined => {
+    if (arr.length < 2) return undefined;
+    return useMedian ? iqr(arr) : ci95(arr);
+  };
+
   // Helper for descriptive stats table cells
   const fmtMSD = (arr: number[], unit: string = "") => {
     if (arr.length === 0) return "—";
+    if (useMedian) {
+      const m = median(arr);
+      const [q1, q3] = iqr(arr);
+      if (unit === "%") return `${m.toFixed(1)}% [${q1.toFixed(1)}–${q3.toFixed(1)}]`;
+      return `${m.toFixed(0)}${unit} [${q1.toFixed(0)}–${q3.toFixed(0)}]`;
+    }
     const m = mean(arr);
     const s = stddev(arr);
     if (unit === "%") return `${m.toFixed(1)}% (${s.toFixed(1)})`;
@@ -1001,6 +1030,36 @@ export default function AnalysisPage() {
                 <option value="instagram">Instagram Reels</option>
                 <option value="tiktok">TikTok</option>
               </select>
+            </div>
+
+            {/* Central tendency toggle */}
+            <div>
+              <div className="text-xs text-neutral-400 mb-2 uppercase tracking-wider">Central tendency</div>
+              <div className="flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+                <button
+                  onClick={() => setUseMedian(false)}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                    !useMedian
+                      ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950"
+                      : "bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                  }`}
+                >
+                  Mean
+                </button>
+                <button
+                  onClick={() => setUseMedian(true)}
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                    useMedian
+                      ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950"
+                      : "bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                  }`}
+                >
+                  Median
+                </button>
+              </div>
+              <div className="text-[10px] text-neutral-400 mt-1.5">
+                {useMedian ? "Showing Mdn [IQR]" : "Showing M (SD), 95% CI"}
+              </div>
             </div>
           </div>
         </Section>
@@ -1191,7 +1250,10 @@ export default function AnalysisPage() {
         {/* ── Descriptive Statistics Table ──────────────────────────────────── */}
         <Section
           title="Descriptive Statistics"
-          subtitle="Per-participant means (SD) for each measure by condition and phase. Delta = After − Before."
+          subtitle={useMedian
+            ? "Per-participant medians [IQR] for each measure by condition and phase. Delta = After − Before."
+            : "Per-participant means (SD) for each measure by condition and phase. Delta = After − Before."
+          }
         >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1255,15 +1317,15 @@ export default function AnalysisPage() {
                 bars={[
                   {
                     label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.ldAccDelta),
-                    ci: perParticipantStats.limited.ldAccDelta.length >= 2 ? ci95(perParticipantStats.limited.ldAccDelta) : undefined,
+                    value: ct(perParticipantStats.limited.ldAccDelta),
+                    ci: perParticipantStats.limited.ldAccDelta.length >= 2 ? ctCI(perParticipantStats.limited.ldAccDelta) : undefined,
                     color: AMBER,
                     n: perParticipantStats.limited.ldAccDelta.length,
                   },
                   {
                     label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.ldAccDelta),
-                    ci: perParticipantStats.unlimited.ldAccDelta.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccDelta) : undefined,
+                    value: ct(perParticipantStats.unlimited.ldAccDelta),
+                    ci: perParticipantStats.unlimited.ldAccDelta.length >= 2 ? ctCI(perParticipantStats.unlimited.ldAccDelta) : undefined,
                     color: BLUE,
                     n: perParticipantStats.unlimited.ldAccDelta.length,
                   },
@@ -1290,15 +1352,15 @@ export default function AnalysisPage() {
                 bars={[
                   {
                     label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.ldRtDelta),
-                    ci: perParticipantStats.limited.ldRtDelta.length >= 2 ? ci95(perParticipantStats.limited.ldRtDelta) : undefined,
+                    value: ct(perParticipantStats.limited.ldRtDelta),
+                    ci: perParticipantStats.limited.ldRtDelta.length >= 2 ? ctCI(perParticipantStats.limited.ldRtDelta) : undefined,
                     color: AMBER,
                     n: perParticipantStats.limited.ldRtDelta.length,
                   },
                   {
                     label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.ldRtDelta),
-                    ci: perParticipantStats.unlimited.ldRtDelta.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtDelta) : undefined,
+                    value: ct(perParticipantStats.unlimited.ldRtDelta),
+                    ci: perParticipantStats.unlimited.ldRtDelta.length >= 2 ? ctCI(perParticipantStats.unlimited.ldRtDelta) : undefined,
                     color: BLUE,
                     n: perParticipantStats.unlimited.ldRtDelta.length,
                   },
@@ -1325,15 +1387,15 @@ export default function AnalysisPage() {
                 bars={[
                   {
                     label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.pmAccDelta),
-                    ci: perParticipantStats.limited.pmAccDelta.length >= 2 ? ci95(perParticipantStats.limited.pmAccDelta) : undefined,
+                    value: ct(perParticipantStats.limited.pmAccDelta),
+                    ci: perParticipantStats.limited.pmAccDelta.length >= 2 ? ctCI(perParticipantStats.limited.pmAccDelta) : undefined,
                     color: AMBER,
                     n: perParticipantStats.limited.pmAccDelta.length,
                   },
                   {
                     label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.pmAccDelta),
-                    ci: perParticipantStats.unlimited.pmAccDelta.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccDelta) : undefined,
+                    value: ct(perParticipantStats.unlimited.pmAccDelta),
+                    ci: perParticipantStats.unlimited.pmAccDelta.length >= 2 ? ctCI(perParticipantStats.unlimited.pmAccDelta) : undefined,
                     color: BLUE,
                     n: perParticipantStats.unlimited.pmAccDelta.length,
                   },
@@ -1360,15 +1422,15 @@ export default function AnalysisPage() {
                 bars={[
                   {
                     label: "Limited (A)",
-                    value: mean(perParticipantStats.limited.pmRtDelta),
-                    ci: perParticipantStats.limited.pmRtDelta.length >= 2 ? ci95(perParticipantStats.limited.pmRtDelta) : undefined,
+                    value: ct(perParticipantStats.limited.pmRtDelta),
+                    ci: perParticipantStats.limited.pmRtDelta.length >= 2 ? ctCI(perParticipantStats.limited.pmRtDelta) : undefined,
                     color: AMBER,
                     n: perParticipantStats.limited.pmRtDelta.length,
                   },
                   {
                     label: "Unlimited (1)",
-                    value: mean(perParticipantStats.unlimited.pmRtDelta),
-                    ci: perParticipantStats.unlimited.pmRtDelta.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtDelta) : undefined,
+                    value: ct(perParticipantStats.unlimited.pmRtDelta),
+                    ci: perParticipantStats.unlimited.pmRtDelta.length >= 2 ? ctCI(perParticipantStats.unlimited.pmRtDelta) : undefined,
                     color: BLUE,
                     n: perParticipantStats.unlimited.pmRtDelta.length,
                   },
@@ -1393,7 +1455,7 @@ export default function AnalysisPage() {
         {/* ── Before vs After Break — LD Task ─────────────────────────────────── */}
         <Section
           title="Before vs After Break — LD Task"
-          subtitle="Lexical decision accuracy and RT by condition and phase. Per-participant means with 95% CI."
+          subtitle={`Lexical decision accuracy and RT by condition and phase. Per-participant ${useMedian ? "medians with IQR" : "means with 95% CI"}.`}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
@@ -1403,15 +1465,15 @@ export default function AnalysisPage() {
                   {
                     label: "Limited (A)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.limited.ldAccBefore), ci: perParticipantStats.limited.ldAccBefore.length >= 2 ? ci95(perParticipantStats.limited.ldAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldAccBefore.length },
-                      { label: "After", value: mean(perParticipantStats.limited.ldAccAfter), ci: perParticipantStats.limited.ldAccAfter.length >= 2 ? ci95(perParticipantStats.limited.ldAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldAccAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.limited.ldAccBefore), ci: perParticipantStats.limited.ldAccBefore.length >= 2 ? ctCI(perParticipantStats.limited.ldAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldAccBefore.length },
+                      { label: "After", value: ct(perParticipantStats.limited.ldAccAfter), ci: perParticipantStats.limited.ldAccAfter.length >= 2 ? ctCI(perParticipantStats.limited.ldAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldAccAfter.length },
                     ],
                   },
                   {
                     label: "Unlimited (1)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.unlimited.ldAccBefore), ci: perParticipantStats.unlimited.ldAccBefore.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldAccBefore.length },
-                      { label: "After", value: mean(perParticipantStats.unlimited.ldAccAfter), ci: perParticipantStats.unlimited.ldAccAfter.length >= 2 ? ci95(perParticipantStats.unlimited.ldAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldAccAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.unlimited.ldAccBefore), ci: perParticipantStats.unlimited.ldAccBefore.length >= 2 ? ctCI(perParticipantStats.unlimited.ldAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldAccBefore.length },
+                      { label: "After", value: ct(perParticipantStats.unlimited.ldAccAfter), ci: perParticipantStats.unlimited.ldAccAfter.length >= 2 ? ctCI(perParticipantStats.unlimited.ldAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldAccAfter.length },
                     ],
                   },
                 ]}
@@ -1426,15 +1488,15 @@ export default function AnalysisPage() {
                   {
                     label: "Limited (A)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.limited.ldRtBefore), ci: perParticipantStats.limited.ldRtBefore.length >= 2 ? ci95(perParticipantStats.limited.ldRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldRtBefore.length },
-                      { label: "After", value: mean(perParticipantStats.limited.ldRtAfter), ci: perParticipantStats.limited.ldRtAfter.length >= 2 ? ci95(perParticipantStats.limited.ldRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldRtAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.limited.ldRtBefore), ci: perParticipantStats.limited.ldRtBefore.length >= 2 ? ctCI(perParticipantStats.limited.ldRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.ldRtBefore.length },
+                      { label: "After", value: ct(perParticipantStats.limited.ldRtAfter), ci: perParticipantStats.limited.ldRtAfter.length >= 2 ? ctCI(perParticipantStats.limited.ldRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.ldRtAfter.length },
                     ],
                   },
                   {
                     label: "Unlimited (1)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.unlimited.ldRtBefore), ci: perParticipantStats.unlimited.ldRtBefore.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldRtBefore.length },
-                      { label: "After", value: mean(perParticipantStats.unlimited.ldRtAfter), ci: perParticipantStats.unlimited.ldRtAfter.length >= 2 ? ci95(perParticipantStats.unlimited.ldRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldRtAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.unlimited.ldRtBefore), ci: perParticipantStats.unlimited.ldRtBefore.length >= 2 ? ctCI(perParticipantStats.unlimited.ldRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.ldRtBefore.length },
+                      { label: "After", value: ct(perParticipantStats.unlimited.ldRtAfter), ci: perParticipantStats.unlimited.ldRtAfter.length >= 2 ? ctCI(perParticipantStats.unlimited.ldRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.ldRtAfter.length },
                     ],
                   },
                 ]}
@@ -1448,7 +1510,7 @@ export default function AnalysisPage() {
         {/* ── Before vs After Break — PM Task ─────────────────────────────────── */}
         <Section
           title="Before vs After Break — PM Task"
-          subtitle="Prospective memory cue accuracy and RT by condition and phase. Per-participant means with 95% CI."
+          subtitle={`Prospective memory cue accuracy and RT by condition and phase. Per-participant ${useMedian ? "medians with IQR" : "means with 95% CI"}.`}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
@@ -1458,15 +1520,15 @@ export default function AnalysisPage() {
                   {
                     label: "Limited (A)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.limited.pmAccBefore), ci: perParticipantStats.limited.pmAccBefore.length >= 2 ? ci95(perParticipantStats.limited.pmAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmAccBefore.length },
-                      { label: "After", value: mean(perParticipantStats.limited.pmAccAfter), ci: perParticipantStats.limited.pmAccAfter.length >= 2 ? ci95(perParticipantStats.limited.pmAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmAccAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.limited.pmAccBefore), ci: perParticipantStats.limited.pmAccBefore.length >= 2 ? ctCI(perParticipantStats.limited.pmAccBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmAccBefore.length },
+                      { label: "After", value: ct(perParticipantStats.limited.pmAccAfter), ci: perParticipantStats.limited.pmAccAfter.length >= 2 ? ctCI(perParticipantStats.limited.pmAccAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmAccAfter.length },
                     ],
                   },
                   {
                     label: "Unlimited (1)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.unlimited.pmAccBefore), ci: perParticipantStats.unlimited.pmAccBefore.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmAccBefore.length },
-                      { label: "After", value: mean(perParticipantStats.unlimited.pmAccAfter), ci: perParticipantStats.unlimited.pmAccAfter.length >= 2 ? ci95(perParticipantStats.unlimited.pmAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmAccAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.unlimited.pmAccBefore), ci: perParticipantStats.unlimited.pmAccBefore.length >= 2 ? ctCI(perParticipantStats.unlimited.pmAccBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmAccBefore.length },
+                      { label: "After", value: ct(perParticipantStats.unlimited.pmAccAfter), ci: perParticipantStats.unlimited.pmAccAfter.length >= 2 ? ctCI(perParticipantStats.unlimited.pmAccAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmAccAfter.length },
                     ],
                   },
                 ]}
@@ -1481,15 +1543,15 @@ export default function AnalysisPage() {
                   {
                     label: "Limited (A)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.limited.pmRtBefore), ci: perParticipantStats.limited.pmRtBefore.length >= 2 ? ci95(perParticipantStats.limited.pmRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmRtBefore.length },
-                      { label: "After", value: mean(perParticipantStats.limited.pmRtAfter), ci: perParticipantStats.limited.pmRtAfter.length >= 2 ? ci95(perParticipantStats.limited.pmRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmRtAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.limited.pmRtBefore), ci: perParticipantStats.limited.pmRtBefore.length >= 2 ? ctCI(perParticipantStats.limited.pmRtBefore) : undefined, color: AMBER, n: perParticipantStats.limited.pmRtBefore.length },
+                      { label: "After", value: ct(perParticipantStats.limited.pmRtAfter), ci: perParticipantStats.limited.pmRtAfter.length >= 2 ? ctCI(perParticipantStats.limited.pmRtAfter) : undefined, color: ROSE, n: perParticipantStats.limited.pmRtAfter.length },
                     ],
                   },
                   {
                     label: "Unlimited (1)",
                     bars: [
-                      { label: "Before", value: mean(perParticipantStats.unlimited.pmRtBefore), ci: perParticipantStats.unlimited.pmRtBefore.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmRtBefore.length },
-                      { label: "After", value: mean(perParticipantStats.unlimited.pmRtAfter), ci: perParticipantStats.unlimited.pmRtAfter.length >= 2 ? ci95(perParticipantStats.unlimited.pmRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmRtAfter.length },
+                      { label: "Before", value: ct(perParticipantStats.unlimited.pmRtBefore), ci: perParticipantStats.unlimited.pmRtBefore.length >= 2 ? ctCI(perParticipantStats.unlimited.pmRtBefore) : undefined, color: BLUE, n: perParticipantStats.unlimited.pmRtBefore.length },
+                      { label: "After", value: ct(perParticipantStats.unlimited.pmRtAfter), ci: perParticipantStats.unlimited.pmRtAfter.length >= 2 ? ctCI(perParticipantStats.unlimited.pmRtAfter) : undefined, color: PURPLE, n: perParticipantStats.unlimited.pmRtAfter.length },
                     ],
                   },
                 ]}
@@ -1637,8 +1699,8 @@ export default function AnalysisPage() {
               <BarChart
                 bars={["youtube-shorts", "instagram", "tiktok"].map((p) => ({
                   label: platformLabel(p),
-                  value: mean(perfByPlatform[p]?.rt || []),
-                  ci: (perfByPlatform[p]?.rt?.length || 0) >= 2 ? ci95(perfByPlatform[p].rt) : undefined,
+                  value: ct(perfByPlatform[p]?.rt || []),
+                  ci: (perfByPlatform[p]?.rt?.length || 0) >= 2 ? ctCI(perfByPlatform[p].rt) : undefined,
                   color: platformColor(p),
                   n: perfByPlatform[p]?.rt?.length || 0,
                 }))}
@@ -1651,8 +1713,8 @@ export default function AnalysisPage() {
               <BarChart
                 bars={["youtube-shorts", "instagram", "tiktok"].map((p) => ({
                   label: platformLabel(p),
-                  value: mean(perfByPlatform[p]?.acc || []),
-                  ci: (perfByPlatform[p]?.acc?.length || 0) >= 2 ? ci95(perfByPlatform[p].acc) : undefined,
+                  value: ct(perfByPlatform[p]?.acc || []),
+                  ci: (perfByPlatform[p]?.acc?.length || 0) >= 2 ? ctCI(perfByPlatform[p].acc) : undefined,
                   color: platformColor(p),
                   n: perfByPlatform[p]?.acc?.length || 0,
                 }))}
@@ -1675,8 +1737,8 @@ export default function AnalysisPage() {
               <BarChart
                 bars={["youtube-shorts", "instagram", "tiktok"].map((p) => ({
                   label: platformLabel(p),
-                  value: mean(perfByMostUsedPlatform[p]?.rt || []),
-                  ci: (perfByMostUsedPlatform[p]?.rt?.length || 0) >= 2 ? ci95(perfByMostUsedPlatform[p].rt) : undefined,
+                  value: ct(perfByMostUsedPlatform[p]?.rt || []),
+                  ci: (perfByMostUsedPlatform[p]?.rt?.length || 0) >= 2 ? ctCI(perfByMostUsedPlatform[p].rt) : undefined,
                   color: platformColor(p),
                   n: perfByMostUsedPlatform[p]?.rt?.length || 0,
                 }))}
@@ -1689,8 +1751,8 @@ export default function AnalysisPage() {
               <BarChart
                 bars={["youtube-shorts", "instagram", "tiktok"].map((p) => ({
                   label: platformLabel(p),
-                  value: mean(perfByMostUsedPlatform[p]?.acc || []),
-                  ci: (perfByMostUsedPlatform[p]?.acc?.length || 0) >= 2 ? ci95(perfByMostUsedPlatform[p].acc) : undefined,
+                  value: ct(perfByMostUsedPlatform[p]?.acc || []),
+                  ci: (perfByMostUsedPlatform[p]?.acc?.length || 0) >= 2 ? ctCI(perfByMostUsedPlatform[p].acc) : undefined,
                   color: platformColor(p),
                   n: perfByMostUsedPlatform[p]?.acc?.length || 0,
                 }))}
