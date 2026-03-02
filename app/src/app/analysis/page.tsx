@@ -478,6 +478,7 @@ export default function AnalysisPage() {
   const [filterPlatform, setFilterPlatform] = useState<"all" | "youtube-shorts" | "instagram" | "tiktok">("all");
   const [correctOnly, setCorrectOnly] = useState(false);
   const [useMedian, setUseMedian] = useState(false);
+  const [filterDateRange, setFilterDateRange] = useState<"all" | "before-mar1" | "after-mar1">("all");
 
   // Session exclusion (transient — resets on page load)
   const [excludedStudyIds, setExcludedStudyIds] = useState<Set<string>>(new Set());
@@ -517,6 +518,8 @@ export default function AnalysisPage() {
 
   // ── Filtered sessions ──────────────────────────────────────────────────────
 
+  const MAR1_CUTOFF = "2025-03-01T00:00:00";
+
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       if (completedOnly && !s.completed_at) return false;
@@ -525,10 +528,18 @@ export default function AnalysisPage() {
         const cond = getConditionForSession(s);
         if (cond !== filterCondition) return false;
       }
+      if (filterDateRange !== "all") {
+        const ts = s.completed_at || s.created_at;
+        if (ts) {
+          const isBefore = ts < MAR1_CUTOFF;
+          if (filterDateRange === "before-mar1" && !isBefore) return false;
+          if (filterDateRange === "after-mar1" && isBefore) return false;
+        }
+      }
       if (s.study_id && excludedStudyIds.has(s.study_id)) return false;
       return true;
     });
-  }, [sessions, completedOnly, filterPhase, filterCondition, getConditionForSession, excludedStudyIds]);
+  }, [sessions, completedOnly, filterPhase, filterCondition, getConditionForSession, filterDateRange, excludedStudyIds]);
 
   const filteredSessionIds = useMemo(() => new Set(filteredSessions.map((s) => s.id)), [filteredSessions]);
 
@@ -550,9 +561,14 @@ export default function AnalysisPage() {
       if (filterCondition !== "all" && s.condition !== filterCondition) return false;
       if (filterPlatform !== "all" && s.platform_used_during !== filterPlatform) return false;
       if (s.study_id && excludedStudyIds.has(s.study_id)) return false;
+      if (filterDateRange !== "all" && s.created_at) {
+        const isBefore = s.created_at < MAR1_CUTOFF;
+        if (filterDateRange === "before-mar1" && !isBefore) return false;
+        if (filterDateRange === "after-mar1" && isBefore) return false;
+      }
       return true;
     });
-  }, [surveys, filterCondition, filterPlatform, excludedStudyIds]);
+  }, [surveys, filterCondition, filterPlatform, excludedStudyIds, filterDateRange]);
 
   // ── Unique study IDs (participants) ────────────────────────────────────────
 
@@ -1068,6 +1084,20 @@ export default function AnalysisPage() {
               <div className="text-[10px] text-neutral-400 mt-1.5">
                 {useMedian ? "Showing Mdn [IQR]" : "Showing M (SD), 95% CI"}
               </div>
+            </div>
+
+            {/* Collection date range */}
+            <div>
+              <div className="text-xs text-neutral-400 mb-2 uppercase tracking-wider">Collection period</div>
+              <select
+                value={filterDateRange}
+                onChange={(e) => setFilterDateRange(e.target.value as typeof filterDateRange)}
+                className="w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-4 py-2.5 text-sm"
+              >
+                <option value="all">All dates</option>
+                <option value="before-mar1">Before March 1</option>
+                <option value="after-mar1">March 1 and after</option>
+              </select>
             </div>
           </div>
         </Section>
