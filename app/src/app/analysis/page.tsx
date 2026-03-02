@@ -478,6 +478,7 @@ export default function AnalysisPage() {
   const [filterPlatform, setFilterPlatform] = useState<"all" | "youtube-shorts" | "instagram" | "tiktok">("all");
   const [correctOnly, setCorrectOnly] = useState(false);
   const [useMedian, setUseMedian] = useState(false);
+  const [filterDateRange, setFilterDateRange] = useState<"all" | "before-mar1" | "after-mar1">("all");
 
   useEffect(() => {
     fetch("/api/analysis")
@@ -514,6 +515,8 @@ export default function AnalysisPage() {
 
   // ── Filtered sessions ──────────────────────────────────────────────────────
 
+  const MAR1_CUTOFF = "2025-03-01T00:00:00";
+
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       if (completedOnly && !s.completed_at) return false;
@@ -522,9 +525,14 @@ export default function AnalysisPage() {
         const cond = getConditionForSession(s);
         if (cond !== filterCondition) return false;
       }
+      if (filterDateRange !== "all") {
+        const ts = s.started_at || s.created_at;
+        if (filterDateRange === "before-mar1" && ts >= MAR1_CUTOFF) return false;
+        if (filterDateRange === "after-mar1" && ts < MAR1_CUTOFF) return false;
+      }
       return true;
     });
-  }, [sessions, completedOnly, filterPhase, filterCondition, getConditionForSession]);
+  }, [sessions, completedOnly, filterPhase, filterCondition, filterDateRange, getConditionForSession]);
 
   const filteredSessionIds = useMemo(() => new Set(filteredSessions.map((s) => s.id)), [filteredSessions]);
 
@@ -545,6 +553,11 @@ export default function AnalysisPage() {
     return surveys.filter((s) => {
       if (filterCondition !== "all" && s.condition !== filterCondition) return false;
       if (filterPlatform !== "all" && s.platform_used_during !== filterPlatform) return false;
+      if (filterDateRange !== "all") {
+        const ts = s.created_at;
+        if (filterDateRange === "before-mar1" && ts >= MAR1_CUTOFF) return false;
+        if (filterDateRange === "after-mar1" && ts < MAR1_CUTOFF) return false;
+      }
       return true;
     });
   }, [surveys, filterCondition, filterPlatform]);
@@ -945,6 +958,33 @@ export default function AnalysisPage() {
                 <option value="instagram">Instagram Reels</option>
                 <option value="tiktok">TikTok</option>
               </select>
+            </div>
+
+            {/* Date range filter */}
+            <div>
+              <div className="text-xs text-neutral-400 mb-2 uppercase tracking-wider">Collection period</div>
+              <div className="flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+                {([
+                  { value: "all", label: "Both" },
+                  { value: "before-mar1", label: "< Mar 1" },
+                  { value: "after-mar1", label: "> Mar 1" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setFilterDateRange(opt.value)}
+                    className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                      filterDateRange === opt.value
+                        ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950"
+                        : "bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[10px] text-neutral-400 mt-1.5">
+                Split by March 1, 2025
+              </div>
             </div>
 
             {/* Central tendency toggle */}
