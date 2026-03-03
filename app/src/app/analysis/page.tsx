@@ -518,7 +518,7 @@ export default function AnalysisPage() {
 
   // ── Filtered sessions ──────────────────────────────────────────────────────
 
-  const MAR1_CUTOFF = "2025-03-01T00:00:00";
+  const MAR1_CUTOFF = "2026-03-01";
 
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
