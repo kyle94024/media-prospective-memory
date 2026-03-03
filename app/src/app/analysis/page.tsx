@@ -603,7 +603,7 @@ export default function AnalysisPage() {
 
   const participantSummaries = useMemo(() => {
     const byStudy: Record<string, RawSession[]> = {};
-    for (const s of sessions) {
+    for (const s of filteredSessions) {
       if (!s.study_id || !s.completed_at) continue;
       if (!byStudy[s.study_id]) byStudy[s.study_id] = [];
       byStudy[s.study_id].push(s);
@@ -666,7 +666,7 @@ export default function AnalysisPage() {
     });
 
     return summaries;
-  }, [sessions, trials, surveys, getConditionForSession]);
+  }, [filteredSessions, trials, surveys, getConditionForSession]);
 
   // ── Per-condition trial data ───────────────────────────────────────────────
 
