@@ -599,6 +599,7 @@ export default function AnalysisPage() {
     pmAfter: PhaseMetrics;
     survey: RawSurvey | null;
     completedAt: string | null;
+    createdAt: string | null;
   }
 
   const participantSummaries = useMemo(() => {
@@ -631,6 +632,10 @@ export default function AnalysisPage() {
         .filter(Boolean)
         .sort()
         .reverse()[0] || null;
+      const earliestCreated = pSessions
+        .map((s) => s.created_at)
+        .filter(Boolean)
+        .sort()[0] || null;
 
       // Split trials by phase
       const beforeSessionIds = new Set(pSessions.filter((s) => s.phase === "before").map((s) => s.id));
@@ -655,6 +660,7 @@ export default function AnalysisPage() {
         pmAfter: computeMetrics(pmAfter),
         survey,
         completedAt: latestCompleted,
+        createdAt: earliestCreated,
       });
     }
 
@@ -1272,6 +1278,56 @@ export default function AnalysisPage() {
                 className="px-4 py-2 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors whitespace-nowrap"
               >
                 Export Participant Summaries CSV
+              </button>
+            )}
+            {participantSummaries.length > 0 && (
+              <button
+                onClick={() => {
+                  const header = [
+                    "study_id", "condition", "start_minute",
+                    "ld_acc_before", "ld_acc_after", "ld_rt_before", "ld_rt_after",
+                    "pm_acc_before", "pm_acc_after", "pm_rt_before", "pm_rt_after",
+                    "total_trials",
+                    "platform_used_during", "platform_most_used", "daily_usage", "handedness", "free_response",
+                  ].join(",");
+                  const rows = participantSummaries.map((p) => {
+                    let startMinute = "";
+                    if (p.createdAt) {
+                      const d = new Date(p.createdAt);
+                      startMinute = isNaN(d.getTime()) ? "" : String(d.getMinutes());
+                    }
+                    return [
+                      p.studyId,
+                      p.condition || "",
+                      startMinute,
+                      p.ldBefore.accuracy !== null ? p.ldBefore.accuracy.toFixed(2) : "",
+                      p.ldAfter.accuracy !== null ? p.ldAfter.accuracy.toFixed(2) : "",
+                      p.ldBefore.meanRT !== null ? p.ldBefore.meanRT.toFixed(2) : "",
+                      p.ldAfter.meanRT !== null ? p.ldAfter.meanRT.toFixed(2) : "",
+                      p.pmBefore.accuracy !== null ? p.pmBefore.accuracy.toFixed(2) : "",
+                      p.pmAfter.accuracy !== null ? p.pmAfter.accuracy.toFixed(2) : "",
+                      p.pmBefore.meanRT !== null ? p.pmBefore.meanRT.toFixed(2) : "",
+                      p.pmAfter.meanRT !== null ? p.pmAfter.meanRT.toFixed(2) : "",
+                      p.trialCount,
+                      p.survey?.platform_used_during || "",
+                      p.survey?.platform_most_used || "",
+                      `"${(p.survey?.daily_usage || "").replace(/"/g, '""')}"`,
+                      p.survey?.handedness || "",
+                      `"${(p.survey?.free_response || "").replace(/"/g, '""')}"`,
+                    ].join(",");
+                  });
+                  const csv = [header, ...rows].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "participant_summaries_with_time.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 text-sm font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-lg hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors whitespace-nowrap"
+              >
+                Export With Start Time CSV
               </button>
             )}
           </div>
