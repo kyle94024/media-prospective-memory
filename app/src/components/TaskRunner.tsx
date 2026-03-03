@@ -212,7 +212,7 @@ export default function TaskRunner({
           <h2 className="text-3xl font-light text-neutral-900 dark:text-white">
             {isTraining ? "Practice Round" : taskLabel}
           </h2>
-          <p className="text-neutral-500 max-w-md text-base">
+          <p className="text-neutral-500 max-w-md mx-auto text-base">
             {isTraining
               ? `${trials.length} practice trials with feedback`
               : `${trials.length} trials`}
