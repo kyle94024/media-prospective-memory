@@ -1284,7 +1284,7 @@ export default function AnalysisPage() {
               <button
                 onClick={() => {
                   const header = [
-                    "study_id", "condition", "start_minute",
+                    "study_id", "condition", "start_minute", "date_group",
                     "ld_acc_before", "ld_acc_after", "ld_rt_before", "ld_rt_after",
                     "pm_acc_before", "pm_acc_after", "pm_rt_before", "pm_rt_after",
                     "total_trials",
@@ -1292,14 +1292,17 @@ export default function AnalysisPage() {
                   ].join(",");
                   const rows = participantSummaries.map((p) => {
                     let startMinute = "";
+                    let dateGroup = "";
                     if (p.createdAt) {
                       const d = new Date(p.createdAt);
                       startMinute = isNaN(d.getTime()) ? "" : String(d.getMinutes());
+                      dateGroup = p.createdAt < "2026-03-01" ? "before_mar1" : "after_mar1";
                     }
                     return [
                       p.studyId,
                       p.condition || "",
                       startMinute,
+                      dateGroup,
                       p.ldBefore.accuracy !== null ? p.ldBefore.accuracy.toFixed(2) : "",
                       p.ldAfter.accuracy !== null ? p.ldAfter.accuracy.toFixed(2) : "",
                       p.ldBefore.meanRT !== null ? p.ldBefore.meanRT.toFixed(2) : "",
