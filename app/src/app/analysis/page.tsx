@@ -529,7 +529,7 @@ export default function AnalysisPage() {
         if (cond !== filterCondition) return false;
       }
       if (filterDateRange !== "all") {
-        const ts = s.completed_at || s.created_at;
+        const ts = s.created_at;
         if (ts) {
           const isBefore = ts < MAR1_CUTOFF;
           if (filterDateRange === "before-mar1" && !isBefore) return false;
